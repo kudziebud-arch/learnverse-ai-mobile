@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useMemo, useState, type PropsWithChildren } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useEffect } from "react";
+import { LEARNER_STATE_KEY, normalizeLearnerState } from "./persistence";
 import { initialLearnerState } from "./progress";
 import type { LearnerState, QuizAttempt } from "./types";
 
@@ -16,23 +18,9 @@ type LearnerContextValue = {
 };
 
 const LearnerContext = createContext<LearnerContextValue | null>(null);
-const LEARNER_STATE_KEY = "learnverse:learner-state:v1";
 
 function makeEvent(type: LearnerState["events"][number]["type"], lessonId?: string, concept?: string) {
   return { id: `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, type, lessonId, concept, occurredAt: new Date().toISOString() };
-}
-
-function normalizeLearnerState(value: unknown): LearnerState {
-  if (!value || typeof value !== "object") return initialLearnerState;
-  const state = value as Partial<LearnerState>;
-  return {
-    lessonProgress: state.lessonProgress && typeof state.lessonProgress === "object" ? state.lessonProgress : {},
-    completedLessonIds: Array.isArray(state.completedLessonIds) ? state.completedLessonIds : [],
-    answeredQuestionIds: Array.isArray(state.answeredQuestionIds) ? state.answeredQuestionIds : [],
-    quizAttempts: Array.isArray(state.quizAttempts) ? state.quizAttempts : [],
-    reviewedFlashcardIds: Array.isArray(state.reviewedFlashcardIds) ? state.reviewedFlashcardIds : [],
-    events: Array.isArray(state.events) ? state.events : [],
-  };
 }
 
 export function LearnerProvider({ children }: PropsWithChildren) {
@@ -92,12 +80,11 @@ export function LearnerProvider({ children }: PropsWithChildren) {
 
   const answerCheckpoint = useCallback((lessonId: string, questionId: string, concept: string, correct: boolean) => {
     setState((current) => {
-      const attempts: QuizAttempt[] = [...current.quizAttempts, { id: `${questionId}-${Date.now()}`, lessonId, correct, occurredAt: new Date().toISOString() }];
+      if (current.answeredQuestionIds.includes(questionId)) return current;
+      const attempts: QuizAttempt[] = [...current.quizAttempts, { id: `${questionId}-${Date.now()}`, lessonId, questionId, correct, occurredAt: new Date().toISOString() }];
       return {
         ...current,
-        answeredQuestionIds: current.answeredQuestionIds.includes(questionId)
-          ? current.answeredQuestionIds
-          : [...current.answeredQuestionIds, questionId],
+        answeredQuestionIds: [...current.answeredQuestionIds, questionId],
         quizAttempts: attempts,
         events: [...current.events, makeEvent("QUESTION_ANSWERED", lessonId, concept)],
       };
@@ -105,13 +92,14 @@ export function LearnerProvider({ children }: PropsWithChildren) {
   }, []);
 
   const reviewFlashcard = useCallback((flashcardId: string, concept: string) => {
-    setState((current) => ({
-      ...current,
-      reviewedFlashcardIds: current.reviewedFlashcardIds.includes(flashcardId)
-        ? current.reviewedFlashcardIds
-        : [...current.reviewedFlashcardIds, flashcardId],
-      events: [...current.events, makeEvent("FLASHCARD_REVIEWED", undefined, concept)],
-    }));
+    setState((current) => {
+      if (current.reviewedFlashcardIds.includes(flashcardId)) return current;
+      return {
+        ...current,
+        reviewedFlashcardIds: [...current.reviewedFlashcardIds, flashcardId],
+        events: [...current.events, makeEvent("FLASHCARD_REVIEWED", undefined, concept)],
+      };
+    });
   }, []);
 
   const resetLearningState = useCallback(() => setState(initialLearnerState), []);
@@ -121,7 +109,11 @@ export function LearnerProvider({ children }: PropsWithChildren) {
     [answerCheckpoint, isReady, markLessonComplete, recordVideoProgress, recordVideoStarted, resetLearningState, reviewFlashcard, state],
   );
 
-  return <LearnerContext.Provider value={value}>{children}</LearnerContext.Provider>;
+  return (
+    <LearnerContext.Provider value={value}>
+      {isReady ? children : <View style={styles.loading}><ActivityIndicator color="#255CFF" size="small" /><Text style={styles.loadingText}>Loading your learning state…</Text></View>}
+    </LearnerContext.Provider>
+  );
 }
 
 export function useLearner() {
@@ -129,3 +121,8 @@ export function useLearner() {
   if (!value) throw new Error("useLearner must be used inside LearnerProvider");
   return value;
 }
+
+const styles = StyleSheet.create({
+  loading: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "#F6F8FC" },
+  loadingText: { color: "#68738B", fontSize: 13, fontWeight: "700" },
+});

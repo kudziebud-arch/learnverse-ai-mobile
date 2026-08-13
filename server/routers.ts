@@ -31,6 +31,12 @@ const noteInput = z.object({
   transcript: z.string().trim().min(1).max(12000),
 });
 
+const tutorOutput = z.object({
+  answer: z.string().trim().min(1).max(6000),
+  groundingStatus: z.enum(["grounded", "limited"]),
+  suggestedPractice: z.string().trim().min(1).max(1000),
+});
+
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
@@ -54,21 +60,28 @@ export const appRouter = router({
         messages: [
           {
             role: "system",
-            content: "You are LearnVerse AI, an educational assistant. You are not a human teacher. Answer only from the supplied lesson context when possible. If the context is insufficient, clearly say what is uncertain. Do not invent citations. Use exactly these labeled sections: Explanation, Example, Practice, Check understanding. Keep the response concise and suitable for a learner.",
+            content: "You are LearnVerse AI, an educational assistant. You are not a human teacher. Answer only from the supplied lesson context when possible. If the context is insufficient, clearly say what is uncertain. Do not invent citations. Return a JSON object with exactly these keys: answer, groundingStatus, suggestedPractice. groundingStatus must be grounded only when the answer is supported by the supplied lesson context; otherwise use limited. In answer, use concise labeled paragraphs: Explanation, Example, Practice, Check understanding.",
           },
           {
             role: "user",
             content: `Lesson ID: ${input.lessonId}\nCurrent lesson moment: ${timestamp}\nTranscript context:\n${input.transcript}\n\nLearner question: ${input.question}`,
           },
         ],
+        response_format: { type: "json_object" },
       });
-      const answer = response.choices[0]?.message?.content;
-      if (typeof answer !== "string" || answer.trim().length === 0) throw new Error("The AI tutor returned no answer");
+      const rawAnswer = response.choices[0]?.message?.content;
+      if (typeof rawAnswer !== "string" || rawAnswer.trim().length === 0) throw new Error("The AI tutor returned no answer");
+      let answer: z.infer<typeof tutorOutput>;
+      try {
+        answer = tutorOutput.parse(JSON.parse(rawAnswer));
+      } catch {
+        throw new Error("The AI tutor returned an invalid response");
+      }
       return {
-        answer: answer.trim(),
-        groundingStatus: "grounded" as const,
-        citations: [{ label: `Current lesson context at ${timestamp}`, timestampSeconds: input.timestampSeconds }],
-        suggestedPractice: "Restate the idea in your own words, then answer the lesson checkpoint without looking at the explanation.",
+        answer: answer.answer,
+        groundingStatus: answer.groundingStatus,
+        citations: answer.groundingStatus === "grounded" ? [{ label: `Current lesson context at ${timestamp}`, timestampSeconds: input.timestampSeconds }] : [],
+        suggestedPractice: answer.suggestedPractice,
       };
     }),
     generateNotes: publicProcedure.input(noteInput).mutation(async ({ input }) => {

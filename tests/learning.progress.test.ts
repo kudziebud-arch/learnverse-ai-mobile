@@ -18,9 +18,9 @@ describe("learning progress calculations", () => {
       ...initialLearnerState,
       lessonProgress: { [starterCourse.lessons[0].id]: 130, [starterCourse.lessons[1].id]: 110 },
       quizAttempts: [
-        { id: "attempt-1", lessonId: starterCourse.lessons[0].id, correct: true, occurredAt: "2026-08-13T10:00:00.000Z" },
-        { id: "attempt-2", lessonId: starterCourse.lessons[0].id, correct: false, occurredAt: "2026-08-13T10:01:00.000Z" },
-        { id: "attempt-3", lessonId: starterCourse.lessons[1].id, correct: true, occurredAt: "2026-08-13T10:02:00.000Z" },
+        { id: "attempt-1", lessonId: starterCourse.lessons[0].id, questionId: "question-1", correct: true, occurredAt: "2026-08-13T10:00:00.000Z" },
+        { id: "attempt-2", lessonId: starterCourse.lessons[0].id, questionId: "question-2", correct: false, occurredAt: "2026-08-13T10:01:00.000Z" },
+        { id: "attempt-3", lessonId: starterCourse.lessons[1].id, questionId: "question-3", correct: true, occurredAt: "2026-08-13T10:02:00.000Z" },
       ],
     };
     expect(getLearningMinutes(state)).toBe(4);

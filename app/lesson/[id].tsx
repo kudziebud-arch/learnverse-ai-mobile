@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEvent } from "expo";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
@@ -28,7 +29,20 @@ export default function LessonScreen() {
     createdPlayer.timeUpdateEventInterval = 5;
     createdPlayer.staysActiveInBackground = true;
   });
+  const { currentTime } = useEvent(player, "timeUpdate", {
+    currentTime: 0,
+    currentLiveTimestamp: null,
+    currentOffsetFromLive: null,
+    bufferedPosition: 0,
+  });
   const noteMutation = trpc.learning.generateNotes.useMutation({ onSuccess: (response) => setGeneratedNotes(response.notes) });
+
+  useEffect(() => {
+    if (!lesson || currentTime <= 0) return;
+    setSelectedTime(currentTime);
+    recordVideoStarted(lesson.id, currentTime);
+    recordVideoProgress(lesson.id, currentTime);
+  }, [currentTime, lesson, recordVideoProgress, recordVideoStarted]);
 
   if (!lesson) {
     return (
@@ -39,7 +53,8 @@ export default function LessonScreen() {
   }
 
   const checkpointAnswered = state.answeredQuestionIds.includes(lesson.interactiveQuestion.id);
-  const isCorrect = selectedAnswer === lesson.interactiveQuestion.correctOptionIndex;
+  const checkpointAttempt = state.quizAttempts.find((attempt) => attempt.questionId === lesson.interactiveQuestion.id);
+  const isCorrect = checkpointAnswered ? checkpointAttempt?.correct === true : selectedAnswer === lesson.interactiveQuestion.correctOptionIndex;
   const progress = Math.min(100, Math.round(((state.lessonProgress[lesson.id] ?? 0) / lesson.durationSeconds) * 100));
   const beginTutor = () => {
     recordVideoProgress(lesson.id, selectedTime);
@@ -68,9 +83,9 @@ export default function LessonScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.topBar}>
-          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.back, pressed && styles.pressed]} accessibilityLabel="Go back"><Text style={styles.backText}>‹</Text></Pressable>
+          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.back, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="Go back"><Text style={styles.backText}>‹</Text></Pressable>
           <Text numberOfLines={1} style={styles.topTitle}>{lesson.shortTitle}</Text>
-          <Pressable onPress={() => setShowCheckpoint((visible) => !visible)} style={({ pressed }) => [styles.checkpointShortcut, pressed && styles.pressed]} accessibilityLabel="Open knowledge check"><Text style={styles.checkpointShortcutText}>Check</Text></Pressable>
+          <Pressable onPress={() => setShowCheckpoint((visible) => !visible)} style={({ pressed }) => [styles.checkpointShortcut, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={showCheckpoint ? "Close knowledge check" : "Open knowledge check"}><Text style={styles.checkpointShortcutText}>Check</Text></Pressable>
         </View>
 
         <View style={styles.videoWrap}>
@@ -84,15 +99,15 @@ export default function LessonScreen() {
           <View style={styles.progressRow}><ProgressBar value={progress} /><Text style={styles.progressText}>{progress}% watched</Text></View>
 
           <View style={styles.actions}>
-            <Pressable onPress={beginTutor} style={({ pressed }) => [styles.primaryAction, pressed && styles.pressed]}><Text style={styles.primaryActionIcon}>✦</Text><Text style={styles.primaryActionText}>Ask tutor</Text></Pressable>
-            <Pressable onPress={requestNotes} disabled={noteMutation.isPending} style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed, noteMutation.isPending && styles.disabled]}><Text style={styles.secondaryActionText}>{noteMutation.isPending ? "Preparing notes…" : "Create notes"}</Text></Pressable>
+            <Pressable onPress={beginTutor} style={({ pressed }) => [styles.primaryAction, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="Ask the AI tutor about this lesson"><Text style={styles.primaryActionIcon}>✦</Text><Text style={styles.primaryActionText}>Ask tutor</Text></Pressable>
+            <Pressable onPress={requestNotes} disabled={noteMutation.isPending} style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed, noteMutation.isPending && styles.disabled]} accessibilityRole="button" accessibilityLabel="Create AI study notes"><Text style={styles.secondaryActionText}>{noteMutation.isPending ? "Preparing notes…" : "Create notes"}</Text></Pressable>
           </View>
           {noteMutation.error ? <Text style={styles.errorText}>Notes could not be generated right now. Your lesson outline is still available below.</Text> : null}
 
           <View style={styles.segmented}>
-            {(["chapters", "transcript", "notes"] as LessonSection[]).map((section) => <Pressable key={section} onPress={() => setActiveSection(section)} style={[styles.segment, activeSection === section && styles.segmentActive]}><Text style={[styles.segmentText, activeSection === section && styles.segmentTextActive]}>{section[0].toUpperCase() + section.slice(1)}</Text></Pressable>)}
+            {(["chapters", "transcript", "notes"] as LessonSection[]).map((section) => <Pressable key={section} onPress={() => setActiveSection(section)} style={[styles.segment, activeSection === section && styles.segmentActive]} accessibilityRole="tab" accessibilityState={{ selected: activeSection === section }} accessibilityLabel={`Show ${section}`}><Text style={[styles.segmentText, activeSection === section && styles.segmentTextActive]}>{section[0].toUpperCase() + section.slice(1)}</Text></Pressable>)}
           </View>
-          {activeSection === "chapters" ? <View style={styles.sectionCard}>{lesson.chapters.map((chapter) => <Pressable key={chapter.id} onPress={() => openChapter(chapter.startSeconds)} style={({ pressed }) => [styles.chapterRow, pressed && styles.pressed]}><Text style={styles.chapterTime}>{formatTimestamp(chapter.startSeconds)}</Text><View style={styles.chapterCopy}><Text style={styles.chapterTitle}>{chapter.title}</Text><Text style={styles.chapterBody}>{chapter.summary}</Text></View><Text style={styles.chapterArrow}>›</Text></Pressable>)}</View> : null}
+          {activeSection === "chapters" ? <View style={styles.sectionCard}>{lesson.chapters.map((chapter) => <Pressable key={chapter.id} onPress={() => openChapter(chapter.startSeconds)} style={({ pressed }) => [styles.chapterRow, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Play chapter ${chapter.title} at ${formatTimestamp(chapter.startSeconds)}`}><Text style={styles.chapterTime}>{formatTimestamp(chapter.startSeconds)}</Text><View style={styles.chapterCopy}><Text style={styles.chapterTitle}>{chapter.title}</Text><Text style={styles.chapterBody}>{chapter.summary}</Text></View><Text style={styles.chapterArrow}>›</Text></Pressable>)}</View> : null}
           {activeSection === "transcript" ? <View style={styles.sectionCard}>{lesson.transcript.map((segment, index) => <View key={segment} style={styles.transcriptRow}><Text style={styles.transcriptIndex}>{String(index + 1).padStart(2, "0")}</Text><Text style={styles.transcriptText}>{segment}</Text></View>)}</View> : null}
           {activeSection === "notes" ? <View style={styles.notesCard}><Text style={styles.notesLabel}>{generatedNotes ? "AI study notes" : "Verified lesson outline"}</Text><Text style={styles.notesText}>{generatedNotes ?? createLessonOutline(lesson)}</Text></View> : null}
 
@@ -100,13 +115,13 @@ export default function LessonScreen() {
           {showCheckpoint ? <View style={styles.checkpointCard}>
             <Text style={styles.checkpointLabel}>Interactive checkpoint · {formatTimestamp(lesson.interactiveQuestion.timestampSeconds)}</Text>
             <Text style={styles.checkpointQuestion}>{lesson.interactiveQuestion.prompt}</Text>
-            {lesson.interactiveQuestion.options.map((option, optionIndex) => <Pressable key={option} onPress={() => setSelectedAnswer(optionIndex)} disabled={checkpointAnswered} style={({ pressed }) => [styles.option, selectedAnswer === optionIndex && styles.optionSelected, checkpointAnswered && optionIndex === lesson.interactiveQuestion.correctOptionIndex && styles.optionCorrect, pressed && styles.pressed]}><View style={[styles.optionCircle, selectedAnswer === optionIndex && styles.optionCircleSelected]}><Text style={[styles.optionLetter, selectedAnswer === optionIndex && styles.optionLetterSelected]}>{String.fromCharCode(65 + optionIndex)}</Text></View><Text style={styles.optionText}>{option}</Text></Pressable>)}
-            {!checkpointAnswered ? <Pressable onPress={submitCheckpoint} disabled={selectedAnswer === null} style={({ pressed }) => [styles.checkButton, selectedAnswer === null && styles.disabled, pressed && styles.pressed]}><Text style={styles.checkButtonText}>Check answer</Text></Pressable> : <View style={[styles.feedback, isCorrect ? styles.feedbackCorrect : styles.feedbackReview]}><Text style={styles.feedbackTitle}>{isCorrect ? "That’s right" : "Revisit the concept"}</Text><Text style={styles.feedbackBody}>{lesson.interactiveQuestion.explanation}</Text>{!isCorrect ? <Pressable onPress={beginTutor}><Text style={styles.feedbackLink}>Ask the tutor for another example</Text></Pressable> : null}</View>}
+            {lesson.interactiveQuestion.options.map((option, optionIndex) => <Pressable key={option} onPress={() => setSelectedAnswer(optionIndex)} disabled={checkpointAnswered} style={({ pressed }) => [styles.option, selectedAnswer === optionIndex && styles.optionSelected, checkpointAnswered && optionIndex === lesson.interactiveQuestion.correctOptionIndex && styles.optionCorrect, pressed && styles.pressed]} accessibilityRole="radio" accessibilityState={{ selected: selectedAnswer === optionIndex, disabled: checkpointAnswered }} accessibilityLabel={`Answer ${String.fromCharCode(65 + optionIndex)}: ${option}`}><View style={[styles.optionCircle, selectedAnswer === optionIndex && styles.optionCircleSelected]}><Text style={[styles.optionLetter, selectedAnswer === optionIndex && styles.optionLetterSelected]}>{String.fromCharCode(65 + optionIndex)}</Text></View><Text style={styles.optionText}>{option}</Text></Pressable>)}
+            {!checkpointAnswered ? <Pressable onPress={submitCheckpoint} disabled={selectedAnswer === null} style={({ pressed }) => [styles.checkButton, selectedAnswer === null && styles.disabled, pressed && styles.pressed]} accessibilityRole="button" accessibilityState={{ disabled: selectedAnswer === null }}><Text style={styles.checkButtonText}>Check answer</Text></Pressable> : <View style={[styles.feedback, isCorrect ? styles.feedbackCorrect : styles.feedbackReview]} accessibilityLiveRegion="polite"><Text style={styles.feedbackTitle}>{isCorrect ? "That’s right" : "Revisit the concept"}</Text><Text style={styles.feedbackBody}>{lesson.interactiveQuestion.explanation}</Text>{!isCorrect ? <Pressable onPress={beginTutor} accessibilityRole="button" accessibilityLabel="Ask the tutor for another example"><Text style={styles.feedbackLink}>Ask the tutor for another example</Text></Pressable> : null}</View>}
           </View> : null}
 
-          <View style={styles.flashcardsCard}><Text style={styles.sectionHeading}>Quick recall cards</Text>{lesson.flashcards.map((card) => { const revealed = revealedCardId === card.id; const reviewed = state.reviewedFlashcardIds.includes(card.id); return <Pressable key={card.id} onPress={() => { setRevealedCardId(revealed ? null : card.id); reviewFlashcard(card.id, card.concept); }} style={({ pressed }) => [styles.flashcard, revealed && styles.flashcardRevealed, pressed && styles.pressed]}><Text style={styles.cardKicker}>{reviewed ? "Reviewed" : "Tap to reveal"}</Text><Text style={styles.cardFront}>{revealed ? card.back : card.front}</Text><Text style={styles.cardConcept}>{card.concept}</Text></Pressable>; })}</View>
+          <View style={styles.flashcardsCard}><Text style={styles.sectionHeading}>Quick recall cards</Text>{lesson.flashcards.map((card) => { const revealed = revealedCardId === card.id; const reviewed = state.reviewedFlashcardIds.includes(card.id); return <Pressable key={card.id} onPress={() => { setRevealedCardId(revealed ? null : card.id); reviewFlashcard(card.id, card.concept); }} style={({ pressed }) => [styles.flashcard, revealed && styles.flashcardRevealed, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`${revealed ? "Hide" : "Reveal"} flashcard: ${card.front}`}><Text style={styles.cardKicker}>{reviewed ? "Reviewed" : "Tap to reveal"}</Text><Text style={styles.cardFront}>{revealed ? card.back : card.front}</Text><Text style={styles.cardConcept}>{card.concept}</Text></Pressable>; })}</View>
 
-          <Pressable onPress={() => { markLessonComplete(lesson.id); Alert.alert("Lesson marked complete", "Your learning path and profile now reflect this completed lesson."); }} style={({ pressed }) => [styles.completeButton, pressed && styles.pressed]}><Text style={styles.completeButtonText}>{state.completedLessonIds.includes(lesson.id) ? "Lesson completed" : "Mark lesson complete"}</Text><Text style={styles.completeCheck}>{state.completedLessonIds.includes(lesson.id) ? "✓" : "→"}</Text></Pressable>
+          <Pressable onPress={() => { markLessonComplete(lesson.id); Alert.alert("Lesson marked complete", "Your learning path and profile now reflect this completed lesson."); }} style={({ pressed }) => [styles.completeButton, pressed && styles.pressed]} accessibilityRole="button" accessibilityState={{ selected: state.completedLessonIds.includes(lesson.id) }} accessibilityLabel={state.completedLessonIds.includes(lesson.id) ? "Lesson completed" : "Mark lesson complete"}><Text style={styles.completeButtonText}>{state.completedLessonIds.includes(lesson.id) ? "Lesson completed" : "Mark lesson complete"}</Text><Text style={styles.completeCheck}>{state.completedLessonIds.includes(lesson.id) ? "✓" : "→"}</Text></Pressable>
         </View>
       </ScrollView>
     </ScreenContainer>

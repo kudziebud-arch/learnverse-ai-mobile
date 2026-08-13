@@ -70,6 +70,7 @@ export type LearningEvent = {
 export type QuizAttempt = {
   id: string;
   lessonId: string;
+  questionId: string;
   correct: boolean;
   occurredAt: string;
 };

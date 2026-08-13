@@ -92,7 +92,6 @@ export default function RootLayout() {
             <Stack.Screen name="progress" />
             <Stack.Screen name="lesson/[id]" />
             <Stack.Screen name="tutor/[lessonId]" />
-            <Stack.Screen name="quiz/[lessonId]" />
             <Stack.Screen name="oauth/callback" />
           </Stack>
           <StatusBar style="auto" />

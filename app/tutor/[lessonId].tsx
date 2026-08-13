@@ -5,7 +5,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { formatTimestamp, getLesson } from "@/lib/learning/catalog";
 import { trpc } from "@/lib/trpc";
 
-type Message = { id: string; role: "user" | "assistant"; text: string; citation?: string; practice?: string };
+type Message = { id: string; role: "user" | "assistant"; text: string; citation?: string; practice?: string; groundingStatus?: "grounded" | "limited" };
 
 export default function ContextTutorScreen() {
   const router = useRouter();
@@ -16,7 +16,7 @@ export default function ContextTutorScreen() {
   const selectedTime = Number(timestamp ?? 0);
   const mutation = trpc.learning.tutor.useMutation({
     onSuccess: (response) => {
-      setMessages((current) => [...current, { id: `assistant-${Date.now()}`, role: "assistant", text: response.answer, citation: response.citations[0]?.label, practice: response.suggestedPractice }]);
+      setMessages((current) => [...current, { id: `assistant-${Date.now()}`, role: "assistant", text: response.answer, citation: response.citations[0]?.label, practice: response.suggestedPractice, groundingStatus: response.groundingStatus }]);
     },
   });
 
@@ -44,7 +44,7 @@ export default function ContextTutorScreen() {
         <View style={styles.header}><Pressable onPress={() => router.back()} style={({ pressed }) => [styles.back, pressed && styles.pressed]}><Text style={styles.backText}>‹</Text></Pressable><View style={styles.headerCopy}><Text style={styles.headerTitle}>AI Tutor</Text><Text numberOfLines={1} style={styles.headerContext}>{lesson.shortTitle} · {formatTimestamp(selectedTime)}</Text></View><View style={styles.online}><View style={styles.onlineDot} /><Text style={styles.onlineText}>Context on</Text></View></View>
         <ScrollView contentContainerStyle={styles.messages} showsVerticalScrollIndicator={false}>
           <View style={styles.contextCard}><Text style={styles.contextLabel}>Lesson context</Text><Text style={styles.contextTitle}>{lesson.title}</Text><Text style={styles.contextBody}>Answers are requested from the server with this lesson’s supplied transcript context. The tutor identifies limits when the source does not support an answer.</Text></View>
-          {messages.map((message) => <View key={message.id} style={[styles.message, message.role === "user" ? styles.userMessage : styles.assistantMessage]}><Text style={[styles.messageRole, message.role === "user" && styles.userMessageRole]}>{message.role === "user" ? "You" : "LearnVerse tutor"}</Text><Text style={[styles.messageText, message.role === "user" && styles.userMessageText]}>{message.text}</Text>{message.citation ? <Text style={styles.citation}>Source context: {message.citation}</Text> : null}{message.practice ? <View style={styles.practice}><Text style={styles.practiceLabel}>Try next</Text><Text style={styles.practiceText}>{message.practice}</Text></View> : null}</View>)}
+          {messages.map((message) => <View key={message.id} style={[styles.message, message.role === "user" ? styles.userMessage : styles.assistantMessage]}><Text style={[styles.messageRole, message.role === "user" && styles.userMessageRole]}>{message.role === "user" ? "You" : "LearnVerse tutor"}</Text><Text style={[styles.messageText, message.role === "user" && styles.userMessageText]}>{message.text}</Text>{message.citation ? <Text style={styles.citation}>Source context: {message.citation}</Text> : null}{message.groundingStatus === "limited" ? <Text style={styles.limited}>Source limit: this answer is not fully supported by the supplied lesson context.</Text> : null}{message.practice ? <View style={styles.practice}><Text style={styles.practiceLabel}>Try next</Text><Text style={styles.practiceText}>{message.practice}</Text></View> : null}</View>)}
           {mutation.isPending ? <View style={styles.typing}><ActivityIndicator color="#255CFF" size="small" /><Text style={styles.typingText}>Preparing a grounded explanation…</Text></View> : null}
           {mutation.error ? <View style={styles.errorCard}><Text style={styles.errorTitle}>The tutor is unavailable right now</Text><Text style={styles.errorText}>No substitute answer has been created. Please try again when the AI service is available.</Text></View> : null}
         </ScrollView>
@@ -78,6 +78,7 @@ const styles = StyleSheet.create({
   messageText: { color: "#36415A", fontSize: 14, lineHeight: 21 },
   userMessageText: { color: "#FFFFFF" },
   citation: { color: "#255CFF", fontSize: 11, fontWeight: "700", marginTop: 8 },
+  limited: { color: "#8B6424", fontSize: 11, fontWeight: "700", marginTop: 8 },
   practice: { borderTopWidth: 1, borderTopColor: "#E6EAF2", marginTop: 10, paddingTop: 9 },
   practiceLabel: { color: "#255CFF", fontSize: 11, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.6 },
   practiceText: { color: "#53617B", fontSize: 12, lineHeight: 18, marginTop: 3 },
