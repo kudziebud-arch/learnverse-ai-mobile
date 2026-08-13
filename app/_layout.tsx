@@ -8,6 +8,7 @@ import "react-native-reanimated";
 import { Platform } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
+import { LearnerProvider } from "@/lib/learning/learner-context";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -87,6 +88,11 @@ export default function RootLayout() {
           {/* in order for ios apps tab switching to work properly, use presentation: "fullScreenModal" for login page, whenever you decide to use presentation: "modal*/}
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="learning-path" />
+            <Stack.Screen name="progress" />
+            <Stack.Screen name="lesson/[id]" />
+            <Stack.Screen name="tutor/[lessonId]" />
+            <Stack.Screen name="quiz/[lessonId]" />
             <Stack.Screen name="oauth/callback" />
           </Stack>
           <StatusBar style="auto" />
@@ -103,7 +109,7 @@ export default function RootLayout() {
         <SafeAreaProvider initialMetrics={providerInitialMetrics}>
           <SafeAreaFrameContext.Provider value={frame}>
             <SafeAreaInsetsContext.Provider value={insets}>
-              {content}
+              <LearnerProvider>{content}</LearnerProvider>
             </SafeAreaInsetsContext.Provider>
           </SafeAreaFrameContext.Provider>
         </SafeAreaProvider>
@@ -112,8 +118,8 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
-      <SafeAreaProvider initialMetrics={providerInitialMetrics}>{content}</SafeAreaProvider>
+      <ThemeProvider>
+      <SafeAreaProvider initialMetrics={providerInitialMetrics}><LearnerProvider>{content}</LearnerProvider></SafeAreaProvider>
     </ThemeProvider>
   );
 }
