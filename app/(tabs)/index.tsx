@@ -27,8 +27,8 @@ export default function HomeScreen() {
   return (
     <ScreenContainer className="px-5" containerClassName="bg-background">
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.heroTop}><View><Eyebrow>LearnVerse AI</Eyebrow><Text style={styles.greeting}>Make today{`\n`}count.</Text></View><View style={styles.avatar}><Text style={styles.avatarText}>L</Text></View></View>
-        <Text style={styles.heroCopy}>Learn at your pace, practice what matters, and keep a clear record of what you understand.</Text>
+        <View style={styles.heroTop}><View><Eyebrow>LearnVerse AI</Eyebrow><Text style={styles.greeting}>Learn with focus.{`\n`}Keep moving forward.</Text></View><View style={styles.avatar}><Text style={styles.avatarText}>L</Text></View></View>
+        <Text style={styles.heroCopy}>Turn each lesson into lasting understanding with guided practice, useful feedback, and a learning record you can trust.</Text>
 
         <SectionTitle title={progress === 0 ? "Start learning" : "Continue learning"} action={<Pressable onPress={() => router.push("/learning-path")} style={({ pressed }) => pressed && styles.textPressed}><Text style={styles.link}>View path</Text></Pressable>} />
         <Pressable onPress={() => router.push("/learning-path")} style={({ pressed }) => [styles.resumeCard, pressed && styles.pressed]} accessibilityRole="button">
@@ -38,16 +38,16 @@ export default function HomeScreen() {
 
         <SectionTitle title="Your learning path" />
         <View style={styles.pathCard}>
-          <View style={styles.pathTop}><View><Text style={styles.pathKicker}>Goal</Text><Text style={styles.pathTitle}>Programming foundations</Text></View><Text style={styles.pathPercent}>{progress}%</Text></View>
+          <View style={styles.pathTop}><View><Text style={styles.pathKicker}>Your goal</Text><Text style={styles.pathTitle}>Programming foundations</Text></View><Text style={styles.pathPercent}>{progress}%</Text></View>
           <ProgressBar value={progress} color="#A9BAFF" />
-          <Text style={styles.pathBody}>{progress === 0 ? "Begin with variables and values, then move into reusable functions." : "Completion updates from learning interactions you make in the app."}</Text>
+          <Text style={styles.pathBody}>{progress === 0 ? "Start with variables and values, then build toward reusable functions with a clear next step each time." : "Your progress reflects the lesson, practice, and review activity you complete."}</Text>
         </View>
 
         <SectionTitle title="Quick practice" action={<Pressable onPress={() => router.push("/(tabs)/study")} style={({ pressed }) => pressed && styles.textPressed}><Text style={styles.link}>Open practice</Text></Pressable>} />
-        <View style={styles.practiceCard}><View style={styles.practiceIcon}><Text style={styles.practiceIconText}>↗</Text></View><View style={styles.practiceCopy}><Text style={styles.practiceTitle}>{minutes === 0 ? "Build a first study signal" : "Keep your practice active"}</Text><Text style={styles.practiceBody}>{minutes === 0 ? "Watch the starter lesson, answer a checkpoint, then review the concepts with flashcards." : `${minutes} minutes of deliberate learning recorded on this device.`}</Text></View></View>
+        <View style={styles.practiceCard}><View style={styles.practiceIcon}><Text style={styles.practiceIconText}>↗</Text></View><View style={styles.practiceCopy}><Text style={styles.practiceTitle}>{minutes === 0 ? "Create your first learning win" : "Strengthen what you learned"}</Text><Text style={styles.practiceBody}>{minutes === 0 ? "Watch the starter lesson, try its knowledge check, then use recall cards to make the ideas stick." : `${minutes} minutes of focused learning recorded on this device.`}</Text></View></View>
 
         <SectionTitle title="Recommended for your goal" />
-        <Pressable onPress={() => router.push("/learning-path")} style={({ pressed }) => [styles.recommendation, pressed && styles.pressed]}><Text style={styles.recommendationKicker}>Starter course</Text><Text style={styles.recommendationTitle}>From values to functions</Text><Text style={styles.recommendationBody}>A short, sequenced course that reinforces each explanation with a knowledge check.</Text></Pressable>
+        <Pressable onPress={() => router.push("/learning-path")} style={({ pressed }) => [styles.recommendation, pressed && styles.pressed]}><Text style={styles.recommendationKicker}>Start here</Text><Text style={styles.recommendationTitle}>From values to functions</Text><Text style={styles.recommendationBody}>A focused sequence that pairs each explanation with a quick way to check your understanding.</Text></Pressable>
       </ScrollView>
     </ScreenContainer>
   );

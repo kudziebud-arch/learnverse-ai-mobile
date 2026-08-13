@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   auditLogs,
@@ -178,6 +178,76 @@ export async function listMediaProcessingJobs(lessonId: number) {
     .innerJoin(videoAssets, eq(videoAssets.id, mediaProcessingJobs.videoAssetId))
     .where(eq(videoAssets.lessonId, lessonId))
     .orderBy(desc(mediaProcessingJobs.updatedAt));
+}
+
+export async function claimMediaProcessingJob(workerId: string) {
+  const db = await requireDb();
+  return db.transaction(async (tx) => {
+    const candidates = await tx
+      .select()
+      .from(mediaProcessingJobs)
+      .where(eq(mediaProcessingJobs.status, "queued"))
+      .orderBy(asc(mediaProcessingJobs.scheduledAt), asc(mediaProcessingJobs.id))
+      .limit(1);
+    const job = candidates[0];
+    if (!job) return null;
+    const claimed = await tx
+      .update(mediaProcessingJobs)
+      .set({ status: "running", attempt: job.attempt + 1, lockedAt: new Date(), lockedBy: workerId, errorMessage: null })
+      .where(and(eq(mediaProcessingJobs.id, job.id), eq(mediaProcessingJobs.status, "queued")));
+    if (!claimed[0].affectedRows) return null;
+    return { id: job.id, videoAssetId: job.videoAssetId, jobType: job.jobType, attempt: job.attempt + 1 };
+  });
+}
+
+export async function completeMediaProcessingJob(input: { jobId: number; workerId: string; status: "succeeded" | "failed"; errorMessage?: string }) {
+  const db = await requireDb();
+  const result = await db
+    .update(mediaProcessingJobs)
+    .set({ status: input.status, completedAt: new Date(), errorMessage: input.errorMessage ?? null })
+    .where(and(eq(mediaProcessingJobs.id, input.jobId), eq(mediaProcessingJobs.status, "running"), eq(mediaProcessingJobs.lockedBy, input.workerId)));
+  return Boolean(result[0].affectedRows);
+}
+
+export async function getManagedPlaybackAsset(videoAssetId: number) {
+  const db = await requireDb();
+  const result = await db
+    .select({ id: videoAssets.id, storageKey: videoAssets.storageKey, processingStatus: videoAssets.processingStatus, rightsStatus: videoAssets.rightsStatus, lessonId: videoAssets.lessonId, organizationId: courses.organizationId })
+    .from(videoAssets)
+    .innerJoin(lessons, eq(lessons.id, videoAssets.lessonId))
+    .innerJoin(courses, eq(courses.id, lessons.courseId))
+    .where(eq(videoAssets.id, videoAssetId))
+    .limit(1);
+  return result[0] ?? null;
+}
+
+export async function getMediaQueueHealth(staleAfterMinutes = 30) {
+  const db = await requireDb();
+  const staleBefore = new Date(Date.now() - staleAfterMinutes * 60 * 1000);
+  const statuses = await db
+    .select({ status: mediaProcessingJobs.status, total: count() })
+    .from(mediaProcessingJobs)
+    .groupBy(mediaProcessingJobs.status);
+  const stale = await db
+    .select({ total: count() })
+    .from(mediaProcessingJobs)
+    .where(and(eq(mediaProcessingJobs.status, "running"), lt(mediaProcessingJobs.lockedAt, staleBefore)));
+  return {
+    byStatus: Object.fromEntries(statuses.map((entry) => [entry.status, entry.total])),
+    staleRunningJobs: stale[0]?.total ?? 0,
+    staleAfterMinutes,
+    checkedAt: new Date().toISOString(),
+  };
+}
+
+export async function recoverStaleMediaProcessingJobs(staleAfterMinutes: number) {
+  const db = await requireDb();
+  const staleBefore = new Date(Date.now() - staleAfterMinutes * 60 * 1000);
+  const result = await db
+    .update(mediaProcessingJobs)
+    .set({ status: "queued", lockedAt: null, lockedBy: null, scheduledAt: new Date(), errorMessage: "Recovered after worker lease expiry" })
+    .where(and(eq(mediaProcessingJobs.status, "running"), lt(mediaProcessingJobs.lockedAt, staleBefore)));
+  return Number(result[0].affectedRows ?? 0);
 }
 
 export async function createModerationReport(input: { reportedByUserId: number; organizationId?: number; subjectType: "course" | "lesson" | "video" | "comment"; subjectId: number; reason: string; details?: string }) {

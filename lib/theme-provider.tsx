@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Appearance, View, useColorScheme as useSystemColorScheme } from "react-native";
 import { colorScheme as nativewindColorScheme, vars } from "nativewind";
 
@@ -6,18 +7,25 @@ import { SchemeColors, type ColorScheme } from "@/constants/theme";
 
 type ThemeContextValue = {
   colorScheme: ColorScheme;
+  themePreference: ThemePreference;
   setColorScheme: (scheme: ColorScheme) => void;
+  setThemePreference: (preference: ThemePreference) => void;
 };
+
+export type ThemePreference = ColorScheme | "system";
+const THEME_PREFERENCE_KEY = "learnverse:theme-preference:v1";
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useSystemColorScheme() ?? "light";
-  const [colorScheme, setColorSchemeState] = useState<ColorScheme>(systemScheme);
+  const [themePreference, setThemePreferenceState] = useState<ThemePreference>("system");
+  const [latestSystemScheme, setLatestSystemScheme] = useState<ColorScheme>(systemScheme);
+  const colorScheme = themePreference === "system" ? latestSystemScheme : themePreference;
 
-  const applyScheme = useCallback((scheme: ColorScheme) => {
+  const applyScheme = useCallback((scheme: ColorScheme, preference: ThemePreference) => {
     nativewindColorScheme.set(scheme);
-    Appearance.setColorScheme?.(scheme);
+    Appearance.setColorScheme?.(preference === "system" ? null : scheme);
     if (typeof document !== "undefined") {
       const root = document.documentElement;
       root.dataset.theme = scheme;
@@ -29,14 +37,27 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const setColorScheme = useCallback((scheme: ColorScheme) => {
-    setColorSchemeState(scheme);
-    applyScheme(scheme);
-  }, [applyScheme]);
+  useEffect(() => {
+    AsyncStorage.getItem(THEME_PREFERENCE_KEY).then((stored) => {
+      if (stored === "light" || stored === "dark" || stored === "system") setThemePreferenceState(stored);
+    }).catch(() => undefined);
+  }, []);
 
   useEffect(() => {
-    applyScheme(colorScheme);
-  }, [applyScheme, colorScheme]);
+    const subscription = Appearance.addChangeListener(({ colorScheme: nextScheme }) => setLatestSystemScheme(nextScheme ?? "light"));
+    return () => subscription.remove();
+  }, []);
+
+  const setThemePreference = useCallback((preference: ThemePreference) => {
+    setThemePreferenceState(preference);
+    AsyncStorage.setItem(THEME_PREFERENCE_KEY, preference).catch(() => undefined);
+  }, []);
+
+  const setColorScheme = useCallback((scheme: ColorScheme) => setThemePreference(scheme), [setThemePreference]);
+
+  useEffect(() => {
+    applyScheme(colorScheme, themePreference);
+  }, [applyScheme, colorScheme, themePreference]);
 
   const themeVariables = useMemo(
     () =>
@@ -57,11 +78,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(
     () => ({
       colorScheme,
+      themePreference,
       setColorScheme,
+      setThemePreference,
     }),
-    [colorScheme, setColorScheme],
+    [colorScheme, setColorScheme, setThemePreference, themePreference],
   );
-  console.log(value, themeVariables)
 
   return (
     <ThemeContext.Provider value={value}>

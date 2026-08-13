@@ -8,6 +8,8 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { invokeLLM, listLLMModels } from "./_core/llm";
+import { storageGetSignedUrl } from "./storage";
+import { notifyOwner } from "./_core/notification";
 
 let selectedTutorModel: string | null = null;
 let modelLookupExpiresAt = 0;
@@ -192,6 +194,16 @@ export const appRouter = router({
       await requireOrganizationRole(ctx.user.id, scope.organizationId, canManageOrganization);
       return db.listMediaProcessingJobs(input.lessonId);
     }),
+    getPlaybackUrl: protectedProcedure.input(z.object({ videoAssetId: z.number().int().positive() })).query(async ({ ctx, input }) => {
+      const asset = await db.getManagedPlaybackAsset(input.videoAssetId);
+      if (!asset) throw new TRPCError({ code: "NOT_FOUND", message: "Media asset not found" });
+      await requireOrganizationRole(ctx.user.id, asset.organizationId, () => true);
+      if (asset.processingStatus !== "ready" || asset.rightsStatus !== "verified") {
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Media is not cleared for playback" });
+      }
+      const url = await storageGetSignedUrl(asset.storageKey);
+      return { url, delivery: "managed_signed" as const, videoAssetId: asset.id };
+    }),
   }),
   moderation: router({
     report: protectedProcedure.input(moderationReportInput).mutation(({ ctx, input }) => db.createModerationReport({ ...input, reportedByUserId: ctx.user.id })),
@@ -208,6 +220,17 @@ export const appRouter = router({
   operations: router({
     publicHealth: publicProcedure.query(() => ({ status: "ok" as const, service: "learnverse-api", checkedAt: new Date().toISOString() })),
     health: adminProcedure.query(() => db.getProductionHealth()),
+    mediaQueueHealth: adminProcedure.input(z.object({ staleAfterMinutes: z.number().int().min(5).max(24 * 60).default(30) })).query(({ input }) => db.getMediaQueueHealth(input.staleAfterMinutes)),
+    recoverStaleMediaJobs: adminProcedure.input(z.object({ staleAfterMinutes: z.number().int().min(5).max(24 * 60).default(30) })).mutation(async ({ input }) => {
+      const recovered = await db.recoverStaleMediaProcessingJobs(input.staleAfterMinutes);
+      if (recovered > 0) {
+        await notifyOwner({
+          title: "LearnVerse media jobs recovered",
+          content: `${recovered} stale media-processing job${recovered === 1 ? " was" : "s were"} returned to the queue after the ${input.staleAfterMinutes}-minute worker lease threshold.`,
+        });
+      }
+      return { recovered };
+    }),
   }),
 });
 

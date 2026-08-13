@@ -22,3 +22,10 @@
 - [x] Add security controls, audit trails, operational health checks, and release readiness documentation
 - [x] Expand automated tests for cloud data, authorization, and security-sensitive behavior
 - [x] Validate the production-foundation release and document remaining external deployment actions
+- [x] Assess managed media/CDN, worker, monitoring, backup, store, and dark-mode integration requirements
+- [x] Add secure media delivery configuration, job-worker controls, monitoring events, and incident records
+- [x] Refine learner-facing product copy and add a persistent light/dark/system appearance selector
+- [x] Produce store listing copy, privacy/review responses, physical-device QA plan, and operating runbooks
+- [x] Validate the expanded production release and document external activation actions
+- [x] Save and validate the secure media-worker configuration; use managed signed delivery and built-in owner notifications until optional external CDN/webhook values are supplied
+- [x] Configure managed signed media delivery, platform-owned incident notifications, and generated worker authentication
