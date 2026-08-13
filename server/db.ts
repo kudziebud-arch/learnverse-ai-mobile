@@ -196,23 +196,32 @@ export async function claimMediaProcessingJob(workerId: string) {
       .set({ status: "running", attempt: job.attempt + 1, lockedAt: new Date(), lockedBy: workerId, errorMessage: null })
       .where(and(eq(mediaProcessingJobs.id, job.id), eq(mediaProcessingJobs.status, "queued")));
     if (!claimed[0].affectedRows) return null;
-    return { id: job.id, videoAssetId: job.videoAssetId, jobType: job.jobType, attempt: job.attempt + 1 };
+    const assets = await tx.select({ storageKey: videoAssets.storageKey }).from(videoAssets).where(eq(videoAssets.id, job.videoAssetId)).limit(1);
+    const asset = assets[0];
+    if (!asset) throw new Error("Media job references a missing video asset");
+    return { id: job.id, videoAssetId: job.videoAssetId, jobType: job.jobType, attempt: job.attempt + 1, storageKey: asset.storageKey };
   });
 }
 
-export async function completeMediaProcessingJob(input: { jobId: number; workerId: string; status: "succeeded" | "failed"; errorMessage?: string }) {
+export async function completeMediaProcessingJob(input: { jobId: number; workerId: string; status: "succeeded" | "failed"; errorMessage?: string; playbackUrl?: string; captionsUrl?: string; durationSeconds?: number }) {
   const db = await requireDb();
-  const result = await db
-    .update(mediaProcessingJobs)
-    .set({ status: input.status, completedAt: new Date(), errorMessage: input.errorMessage ?? null })
-    .where(and(eq(mediaProcessingJobs.id, input.jobId), eq(mediaProcessingJobs.status, "running"), eq(mediaProcessingJobs.lockedBy, input.workerId)));
-  return Boolean(result[0].affectedRows);
+  return db.transaction(async (tx) => {
+    const jobs = await tx.select().from(mediaProcessingJobs).where(and(eq(mediaProcessingJobs.id, input.jobId), eq(mediaProcessingJobs.status, "running"), eq(mediaProcessingJobs.lockedBy, input.workerId))).limit(1);
+    const job = jobs[0];
+    if (!job) return false;
+    if (job.jobType === "transcode" && input.status === "succeeded" && (!input.playbackUrl || !input.durationSeconds)) throw new Error("A successful transcode requires playbackUrl and durationSeconds");
+    await tx.update(mediaProcessingJobs).set({ status: input.status, completedAt: new Date(), errorMessage: input.errorMessage ?? null }).where(eq(mediaProcessingJobs.id, input.jobId));
+    if (job.jobType === "transcode") {
+      await tx.update(videoAssets).set({ processingStatus: input.status === "succeeded" ? "ready" : "failed", playbackUrl: input.playbackUrl ?? null, captionsUrl: input.captionsUrl ?? null, durationSeconds: input.durationSeconds ?? null }).where(eq(videoAssets.id, job.videoAssetId));
+    }
+    return true;
+  });
 }
 
 export async function getManagedPlaybackAsset(videoAssetId: number) {
   const db = await requireDb();
   const result = await db
-    .select({ id: videoAssets.id, storageKey: videoAssets.storageKey, processingStatus: videoAssets.processingStatus, rightsStatus: videoAssets.rightsStatus, lessonId: videoAssets.lessonId, organizationId: courses.organizationId })
+    .select({ id: videoAssets.id, storageKey: videoAssets.storageKey, playbackUrl: videoAssets.playbackUrl, processingStatus: videoAssets.processingStatus, rightsStatus: videoAssets.rightsStatus, lessonId: videoAssets.lessonId, organizationId: courses.organizationId })
     .from(videoAssets)
     .innerJoin(lessons, eq(lessons.id, videoAssets.lessonId))
     .innerJoin(courses, eq(courses.id, lessons.courseId))

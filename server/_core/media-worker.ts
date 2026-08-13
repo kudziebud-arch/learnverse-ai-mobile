@@ -3,12 +3,16 @@ import type { Express, NextFunction, Request, Response } from "express";
 import { z } from "zod";
 import { claimMediaProcessingJob, completeMediaProcessingJob } from "../db";
 import { notifyOwner } from "./notification";
+import { storageGetSignedUrl } from "../storage";
 
 const workerIdInput = z.object({ workerId: z.string().trim().min(3).max(160) });
 const completionInput = workerIdInput.extend({
   jobId: z.number().int().positive(),
   status: z.enum(["succeeded", "failed"]),
   errorMessage: z.string().trim().max(4000).optional(),
+  playbackUrl: z.string().url().max(2048).optional(),
+  captionsUrl: z.string().url().max(2048).optional(),
+  durationSeconds: z.number().int().positive().max(24 * 60 * 60).optional(),
 });
 
 function getWorkerToken() {
@@ -46,7 +50,9 @@ export function registerMediaWorkerRoutes(app: Express) {
     if (!parsed.success) return response.status(400).json({ error: "Invalid worker claim request" });
     try {
       const job = await claimMediaProcessingJob(parsed.data.workerId);
-      return response.json({ job });
+      if (!job) return response.json({ job: null });
+      const sourceUrl = await storageGetSignedUrl(job.storageKey);
+      return response.json({ job: { ...job, sourceUrl } });
     } catch (error) {
       console.error("[MediaWorker] job claim failed", error);
       return response.status(503).json({ error: "Media job store unavailable" });

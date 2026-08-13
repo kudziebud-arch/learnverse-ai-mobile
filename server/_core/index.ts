@@ -6,6 +6,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { registerMediaWorkerRoutes } from "./media-worker";
+import { isAllowedBrowserOrigin } from "./cors";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 
@@ -32,9 +33,13 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
-  // Enable CORS for all routes - reflect the request origin to support credentials
+  // Native clients send no browser Origin. Browser traffic in production must be explicitly allowed.
   app.use((req, res, next) => {
     const origin = req.headers.origin;
+    if (!isAllowedBrowserOrigin(origin, process.env.NODE_ENV, process.env.CORS_ALLOWED_ORIGINS)) {
+      res.status(403).json({ error: "Browser origin is not permitted" });
+      return;
+    }
     if (origin) {
       res.header("Access-Control-Allow-Origin", origin);
     }
@@ -53,8 +58,9 @@ async function startServer() {
     next();
   });
 
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  // Media bytes use direct signed storage uploads; application APIs accept only compact JSON metadata.
+  app.use(express.json({ limit: "1mb" }));
+  app.use(express.urlencoded({ limit: "1mb", extended: true }));
 
   registerStorageProxy(app);
   registerOAuthRoutes(app);

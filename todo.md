@@ -29,3 +29,8 @@
 - [x] Validate the expanded production release and document external activation actions
 - [x] Save and validate the secure media-worker configuration; use managed signed delivery and built-in owner notifications until optional external CDN/webhook values are supplied
 - [x] Configure managed signed media delivery, platform-owned incident notifications, and generated worker authentication
+- [x] Assess persistent worker deployment, managed CDN activation, and physical-device QA constraints
+- [x] Package and validate a persistent authenticated LearnVerse media worker
+- [x] Add CDN activation controls, release gating, and worker operational hardening
+- [x] Document persistent worker deployment choices, CDN activation gates, and the industry-release infrastructure handoff
+- [x] Execute deterministic industry-readiness validation and finalize the physical-device QA handoff

@@ -201,6 +201,10 @@ export const appRouter = router({
       if (asset.processingStatus !== "ready" || asset.rightsStatus !== "verified") {
         throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Media is not cleared for playback" });
       }
+      const cdnBaseUrl = process.env.CDN_BASE_URL?.trim().replace(/\/+$/, "");
+      if (cdnBaseUrl && asset.playbackUrl?.startsWith(cdnBaseUrl)) {
+        return { url: asset.playbackUrl, delivery: "cdn" as const, videoAssetId: asset.id };
+      }
       const url = await storageGetSignedUrl(asset.storageKey);
       return { url, delivery: "managed_signed" as const, videoAssetId: asset.id };
     }),
