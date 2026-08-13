@@ -1,92 +1,207 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import {
+  auditLogs,
+  courses,
+  learnerStates,
+  lessons,
+  mediaProcessingJobs,
+  moderationReports,
+  organizationMembers,
+  organizations,
+  type InsertUser,
+  type User,
+  users,
+  videoAssets,
+} from "../drizzle/schema";
+import type { OrganizationRole } from "../shared/production";
+import type { LearnerState } from "../lib/learning/types";
 import { ENV } from "./_core/env";
 
-let _db: ReturnType<typeof drizzle> | null = null;
+let database: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
+  if (!database && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      database = drizzle(process.env.DATABASE_URL);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
-      _db = null;
+      database = null;
     }
   }
-  return _db;
+  return database;
+}
+
+async function requireDb() {
+  const db = await getDb();
+  if (!db) throw new Error("The production database is unavailable");
+  return db;
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) {
-    throw new Error("User openId is required for upsert");
+  if (!user.openId) throw new Error("User openId is required for upsert");
+  const db = await requireDb();
+  const values: InsertUser = { openId: user.openId };
+  const updateSet: Record<string, unknown> = {};
+  (["name", "email", "loginMethod"] as const).forEach((field) => {
+    if (user[field] !== undefined) {
+      values[field] = user[field] ?? null;
+      updateSet[field] = user[field] ?? null;
+    }
+  });
+  values.lastSignedIn = user.lastSignedIn ?? new Date();
+  updateSet.lastSignedIn = values.lastSignedIn;
+  if (user.role !== undefined) {
+    values.role = user.role;
+    updateSet.role = user.role;
+  } else if (user.openId === ENV.ownerOpenId) {
+    values.role = "admin";
+    updateSet.role = "admin";
   }
-
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
-  }
-
-  try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
-    const updateSet: Record<string, unknown> = {};
-
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
-
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-
-    textFields.forEach(assignNullable);
-
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = "admin";
-      updateSet.role = "admin";
-    }
-
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
-  } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
-  }
+  await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
 }
 
-export async function getUserByOpenId(openId: string) {
+export async function getUserByOpenId(openId: string): Promise<User | undefined> {
   const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
-  }
-
+  if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
-  return result.length > 0 ? result[0] : undefined;
+  return result[0];
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function getLearnerState(userId: number) {
+  const db = await requireDb();
+  const result = await db.select().from(learnerStates).where(eq(learnerStates.userId, userId)).limit(1);
+  return result[0] ?? null;
+}
+
+export async function saveLearnerState(userId: number, state: LearnerState) {
+  const db = await requireDb();
+  const existing = await getLearnerState(userId);
+  const serialized = state as unknown as Record<string, unknown>;
+  if (existing) {
+    await db.update(learnerStates).set({ state: serialized, version: existing.version + 1, updatedAt: new Date() }).where(eq(learnerStates.id, existing.id));
+    return { version: existing.version + 1, updatedAt: new Date() };
+  }
+  const result = await db.insert(learnerStates).values({ userId, state: serialized, version: 1 });
+  return { version: 1, id: Number(result[0].insertId) };
+}
+
+export async function createOrganizationWithOwner(userId: number, name: string, slug: string) {
+  const db = await requireDb();
+  return db.transaction(async (tx) => {
+    const organizationInsert = await tx.insert(organizations).values({ name, slug, createdByUserId: userId });
+    const organizationId = Number(organizationInsert[0].insertId);
+    await tx.insert(organizationMembers).values({ organizationId, userId, role: "institution_admin" });
+    await tx.insert(auditLogs).values({ actorUserId: userId, organizationId, action: "organization.created", entityType: "organization", entityId: String(organizationId), metadata: { name, slug } });
+    return { id: organizationId, name, slug, role: "institution_admin" as const };
+  });
+}
+
+export async function listOrganizationMemberships(userId: number) {
+  const db = await requireDb();
+  return db
+    .select({ organizationId: organizations.id, name: organizations.name, slug: organizations.slug, role: organizationMembers.role })
+    .from(organizationMembers)
+    .innerJoin(organizations, eq(organizations.id, organizationMembers.organizationId))
+    .where(eq(organizationMembers.userId, userId));
+}
+
+export async function getOrganizationMembership(userId: number, organizationId: number) {
+  const db = await requireDb();
+  const result = await db
+    .select()
+    .from(organizationMembers)
+    .where(and(eq(organizationMembers.userId, userId), eq(organizationMembers.organizationId, organizationId)))
+    .limit(1);
+  return result[0] ?? null;
+}
+
+export async function createCourse(input: { organizationId: number; createdByUserId: number; title: string; description?: string; subject?: string; level: "beginner" | "intermediate" | "advanced"; visibility: "private" | "organization" | "public" | "unlisted" }) {
+  const db = await requireDb();
+  const result = await db.insert(courses).values({ ...input, description: input.description ?? null, subject: input.subject ?? null, status: "draft" });
+  const id = Number(result[0].insertId);
+  await db.insert(auditLogs).values({ actorUserId: input.createdByUserId, organizationId: input.organizationId, action: "course.created", entityType: "course", entityId: String(id), metadata: { title: input.title } });
+  return { id, status: "draft" as const };
+}
+
+export async function listOrganizationCourses(organizationId: number) {
+  const db = await requireDb();
+  return db.select().from(courses).where(eq(courses.organizationId, organizationId)).orderBy(desc(courses.updatedAt));
+}
+
+export async function registerVideoAsset(input: { lessonId: number; storageKey: string; playbackUrl?: string; captionsUrl?: string; durationSeconds?: number; processingStatus: "uploaded" | "processing" | "ready" | "failed" | "rejected"; rightsStatus: "pending" | "verified" | "restricted" | "rejected" }) {
+  const db = await requireDb();
+  const result = await db.insert(videoAssets).values({ ...input, playbackUrl: input.playbackUrl ?? null, captionsUrl: input.captionsUrl ?? null, durationSeconds: input.durationSeconds ?? null });
+  return Number(result[0].insertId);
+}
+
+export async function getLessonScope(lessonId: number) {
+  const db = await requireDb();
+  const result = await db
+    .select({ lessonId: lessons.id, courseId: courses.id, organizationId: courses.organizationId })
+    .from(lessons)
+    .innerJoin(courses, eq(courses.id, lessons.courseId))
+    .where(eq(lessons.id, lessonId))
+    .limit(1);
+  return result[0] ?? null;
+}
+
+export async function registerVideoAssetWithJobs(input: { lessonId: number; organizationId: number; requestedByUserId: number; storageKey: string; playbackUrl?: string; captionsUrl?: string; durationSeconds?: number; rightsStatus: "pending" | "verified" | "restricted" | "rejected" }) {
+  const db = await requireDb();
+  return db.transaction(async (tx) => {
+    const assetResult = await tx.insert(videoAssets).values({
+      lessonId: input.lessonId,
+      storageKey: input.storageKey,
+      playbackUrl: input.playbackUrl ?? null,
+      captionsUrl: input.captionsUrl ?? null,
+      durationSeconds: input.durationSeconds ?? null,
+      processingStatus: "uploaded",
+      rightsStatus: input.rightsStatus,
+    });
+    const videoAssetId = Number(assetResult[0].insertId);
+    await tx.insert(mediaProcessingJobs).values([
+      { videoAssetId, jobType: "transcode" },
+      { videoAssetId, jobType: "transcript" },
+      { videoAssetId, jobType: "index" },
+      { videoAssetId, jobType: "moderation_scan" },
+    ]);
+    await tx.insert(auditLogs).values({ actorUserId: input.requestedByUserId, organizationId: input.organizationId, action: "media.asset_registered", entityType: "video_asset", entityId: String(videoAssetId), metadata: { lessonId: input.lessonId, rightsStatus: input.rightsStatus } });
+    return { videoAssetId, processingStatus: "uploaded" as const, queuedJobTypes: ["transcode", "transcript", "index", "moderation_scan"] as const };
+  });
+}
+
+export async function listMediaProcessingJobs(lessonId: number) {
+  const db = await requireDb();
+  return db
+    .select({ id: mediaProcessingJobs.id, jobType: mediaProcessingJobs.jobType, status: mediaProcessingJobs.status, attempt: mediaProcessingJobs.attempt, scheduledAt: mediaProcessingJobs.scheduledAt, updatedAt: mediaProcessingJobs.updatedAt, videoAssetId: videoAssets.id })
+    .from(mediaProcessingJobs)
+    .innerJoin(videoAssets, eq(videoAssets.id, mediaProcessingJobs.videoAssetId))
+    .where(eq(videoAssets.lessonId, lessonId))
+    .orderBy(desc(mediaProcessingJobs.updatedAt));
+}
+
+export async function createModerationReport(input: { reportedByUserId: number; organizationId?: number; subjectType: "course" | "lesson" | "video" | "comment"; subjectId: number; reason: string; details?: string }) {
+  const db = await requireDb();
+  const result = await db.insert(moderationReports).values({ ...input, organizationId: input.organizationId ?? null, details: input.details ?? null });
+  const id = Number(result[0].insertId);
+  await db.insert(auditLogs).values({ actorUserId: input.reportedByUserId, organizationId: input.organizationId ?? null, action: "moderation.reported", entityType: input.subjectType, entityId: String(input.subjectId), metadata: { reportId: id, reason: input.reason } });
+  return id;
+}
+
+export async function listModerationReports(organizationId: number) {
+  const db = await requireDb();
+  return db.select().from(moderationReports).where(eq(moderationReports.organizationId, organizationId)).orderBy(desc(moderationReports.createdAt));
+}
+
+export async function resolveModerationReport(input: { reportId: number; actorUserId: number; organizationId: number; status: "resolved" | "dismissed" }) {
+  const db = await requireDb();
+  await db.update(moderationReports).set({ status: input.status, resolvedByUserId: input.actorUserId, resolvedAt: new Date() }).where(and(eq(moderationReports.id, input.reportId), eq(moderationReports.organizationId, input.organizationId)));
+  await db.insert(auditLogs).values({ actorUserId: input.actorUserId, organizationId: input.organizationId, action: `moderation.${input.status}`, entityType: "moderation_report", entityId: String(input.reportId) });
+}
+
+export async function getProductionHealth() {
+  const db = await getDb();
+  return { database: db ? "connected" : "unavailable", checkedAt: new Date().toISOString() } as const;
+}
+
+export type MembershipRole = OrganizationRole;

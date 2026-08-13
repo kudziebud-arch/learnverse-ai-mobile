@@ -140,7 +140,9 @@ export function registerOAuthRoutes(app: Express) {
       const user = await sdk.authenticateRequest(req);
       res.json({ user: buildUserResponse(user) });
     } catch (error) {
-      console.error("[Auth] /api/auth/me failed:", error);
+      if (typeof error === "object" && error && "statusCode" in error && (error as { statusCode?: number }).statusCode && (error as { statusCode?: number }).statusCode! >= 500) {
+        console.error("[Auth] /api/auth/me failed:", error);
+      }
       res.status(401).json({ error: "Not authenticated", user: null });
     }
   });

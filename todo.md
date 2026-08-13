@@ -15,3 +15,10 @@
 - [x] Audit and refine all existing learning flows, interaction states, accessibility labels, and resilience behavior
 - [x] Extend deterministic tests to cover persisted learner state and core utility behavior
 - [x] Run final type, unit, lint, and build validation for the refinement release
+- [x] Define the production delivery architecture and environment boundaries
+- [x] Implement authentication-aware learner cloud synchronization and server-side authorization
+- [x] Model production roles, organizations, courses, lessons, progress, and moderation records
+- [x] Add production media, upload, moderation, and background-processing service contracts
+- [x] Add security controls, audit trails, operational health checks, and release readiness documentation
+- [x] Expand automated tests for cloud data, authorization, and security-sensitive behavior
+- [x] Validate the production-foundation release and document remaining external deployment actions
