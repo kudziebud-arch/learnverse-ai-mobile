@@ -1,14 +1,16 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
+import NetInfo from "@react-native-community/netinfo";
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
 import { LEARNER_STATE_KEY, normalizeLearnerState } from "./persistence";
 import { mergeLearnerState } from "./merge";
 import { initialLearnerState } from "./progress";
+import { clearQueuedLearnerState, mergeOfflineWithRemote, queueLearnerState, readQueuedLearnerState } from "./offline-sync";
 import type { LearnerState, QuizAttempt } from "./types";
 
-type SyncStatus = "local" | "syncing" | "synced" | "error";
+type SyncStatus = "local" | "offline" | "syncing" | "synced" | "error";
 type LearnerContextValue = {
   state: LearnerState;
   isReady: boolean;
@@ -33,9 +35,21 @@ export function LearnerProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<LearnerState>(initialLearnerState);
   const [isReady, setIsReady] = useState(false);
   const [cloudHydrated, setCloudHydrated] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const stateRef = useRef(state);
   const { isAuthenticated } = useAuth();
-  const learnerStateQuery = trpc.learnerState.get.useQuery(undefined, { enabled: isReady && isAuthenticated, retry: 1 });
+  stateRef.current = state;
+  const learnerStateQuery = trpc.learnerState.get.useQuery(undefined, { enabled: isReady && isAuthenticated && isOnline, retry: 1 });
   const saveLearnerState = trpc.learnerState.save.useMutation();
+
+  useEffect(() => {
+    let mounted = true;
+    NetInfo.fetch().then((network) => {
+      if (mounted) setIsOnline(Boolean(network.isConnected && network.isInternetReachable !== false));
+    });
+    const unsubscribe = NetInfo.addEventListener((network) => setIsOnline(Boolean(network.isConnected && network.isInternetReachable !== false)));
+    return () => { mounted = false; unsubscribe(); };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -62,19 +76,47 @@ export function LearnerProvider({ children }: PropsWithChildren) {
       setCloudHydrated(false);
       return;
     }
+    if (!isOnline) {
+      setCloudHydrated(true);
+      return;
+    }
     if (!learnerStateQuery.isSuccess || cloudHydrated) return;
     const remoteState = learnerStateQuery.data?.state;
     if (remoteState) {
       setState((local) => mergeLearnerState(local, normalizeLearnerState(remoteState)));
     }
     setCloudHydrated(true);
-  }, [cloudHydrated, isAuthenticated, learnerStateQuery.data, learnerStateQuery.isSuccess]);
+  }, [cloudHydrated, isAuthenticated, isOnline, learnerStateQuery.data, learnerStateQuery.isSuccess]);
+
+  useEffect(() => {
+    if (isAuthenticated && isOnline) setCloudHydrated(false);
+  }, [isAuthenticated, isOnline]);
 
   useEffect(() => {
     if (!isReady || !isAuthenticated || !cloudHydrated) return;
-    const timer = setTimeout(() => saveLearnerState.mutate(state), 800);
+    const timer = setTimeout(() => {
+      if (!isOnline) {
+        void queueLearnerState(state);
+        return;
+      }
+      saveLearnerState.mutate(state, { onError: () => { void queueLearnerState(state); } });
+    }, 800);
     return () => clearTimeout(timer);
-  }, [cloudHydrated, isAuthenticated, isReady, saveLearnerState, state]);
+  }, [cloudHydrated, isAuthenticated, isOnline, isReady, saveLearnerState, state]);
+
+  const flushOfflineQueue = useCallback(async () => {
+    if (!isAuthenticated || !isOnline || !cloudHydrated) return;
+    const queued = await readQueuedLearnerState();
+    if (!queued) return;
+    const merged = mergeOfflineWithRemote(stateRef.current, queued.state);
+    setState(merged);
+    await saveLearnerState.mutateAsync(merged);
+    await clearQueuedLearnerState();
+  }, [cloudHydrated, isAuthenticated, isOnline, saveLearnerState]);
+
+  useEffect(() => {
+    void flushOfflineQueue().catch(() => undefined);
+  }, [flushOfflineQueue]);
 
   const recordVideoStarted = useCallback((lessonId: string, seconds: number) => {
     setState((current) => {
@@ -106,12 +148,13 @@ export function LearnerProvider({ children }: PropsWithChildren) {
   }, []);
   const resetLearningState = useCallback(() => setState(initialLearnerState), []);
   const syncNow = useCallback(async () => {
-    if (!isAuthenticated) return;
-    await saveLearnerState.mutateAsync(state);
+    if (!isAuthenticated || !isOnline) return;
+    await flushOfflineQueue();
+    await saveLearnerState.mutateAsync(stateRef.current);
     await learnerStateQuery.refetch();
-  }, [isAuthenticated, learnerStateQuery, saveLearnerState, state]);
+  }, [flushOfflineQueue, isAuthenticated, isOnline, learnerStateQuery, saveLearnerState]);
 
-  const syncStatus: SyncStatus = !isAuthenticated ? "local" : learnerStateQuery.isLoading || saveLearnerState.isPending || !cloudHydrated ? "syncing" : learnerStateQuery.isError || saveLearnerState.isError ? "error" : "synced";
+  const syncStatus: SyncStatus = !isAuthenticated ? "local" : !isOnline ? "offline" : learnerStateQuery.isLoading || saveLearnerState.isPending || !cloudHydrated ? "syncing" : learnerStateQuery.isError || saveLearnerState.isError ? "error" : "synced";
   const syncError = learnerStateQuery.error?.message ?? saveLearnerState.error?.message ?? null;
   const value = useMemo(() => ({ state, isReady, syncStatus, syncError, syncNow, recordVideoStarted, recordVideoProgress, markLessonComplete, answerCheckpoint, reviewFlashcard, resetLearningState }), [answerCheckpoint, isReady, markLessonComplete, recordVideoProgress, recordVideoStarted, resetLearningState, reviewFlashcard, state, syncError, syncNow, syncStatus]);
 

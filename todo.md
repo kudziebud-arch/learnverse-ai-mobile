@@ -54,3 +54,9 @@
 - [ ] Add remaining educator, creator, institution, administrator, collaboration, monetization, and external-service capabilities confirmed by the comparison
 - [x] Add deterministic tests for every newly implemented capability
 - [x] Run full validation and save the additive-only release checkpoint
+
+- [x] Add offline-first learning cache for permitted notes, flashcards, selected lesson metadata, Learning Hub plans, and progress
+- [x] Add reconnect-safe queued cloud sync with conflict-safe merge behavior
+- [x] Add offline/online status and useful offline states without changing existing visual language
+- [x] Add deterministic tests for offline cache, queueing, and conflict-safe merge behavior
+- [x] Run full offline and production validation and save the release checkpoint

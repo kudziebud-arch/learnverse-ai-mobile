@@ -22,7 +22,7 @@ export default function ProfileScreen() {
   const minutes = getLearningMinutes(state);
   const accuracy = getQuizAccuracy(state);
   const accountName = user?.name?.trim() || "Learner";
-  const syncLabel = syncStatus === "synced" ? "Synced securely" : syncStatus === "syncing" ? "Syncing learning state" : syncStatus === "error" ? "Sync needs attention" : "Stored on this device";
+  const syncLabel = syncStatus === "synced" ? "Synced securely" : syncStatus === "syncing" ? "Syncing learning state" : syncStatus === "offline" ? "Offline — changes queued safely" : syncStatus === "error" ? "Sync needs attention" : "Stored on this device";
 
   const beginLogin = async () => {
     try {

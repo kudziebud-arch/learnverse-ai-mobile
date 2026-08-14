@@ -2,6 +2,7 @@ import { useEvent } from "expo";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import NetInfo from "@react-native-community/netinfo";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { ScreenContainer } from "@/components/screen-container";
 import { ProgressBar } from "@/components/learnverse-ui";
@@ -23,6 +24,14 @@ export default function LessonScreen() {
   const [showCheckpoint, setShowCheckpoint] = useState(false);
   const [revealedCardId, setRevealedCardId] = useState<string | null>(null);
   const [generatedNotes, setGeneratedNotes] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    NetInfo.fetch().then((network) => { if (mounted) setIsOnline(Boolean(network.isConnected && network.isInternetReachable !== false)); });
+    const unsubscribe = NetInfo.addEventListener((network) => setIsOnline(Boolean(network.isConnected && network.isInternetReachable !== false)));
+    return () => { mounted = false; unsubscribe(); };
+  }, []);
 
   const source = useMemo(() => lesson ? { uri: lesson.videoUrl, useCaching: true } : null, [lesson]);
   const player = useVideoPlayer(source, (createdPlayer) => {
@@ -57,6 +66,10 @@ export default function LessonScreen() {
   const isCorrect = checkpointAnswered ? checkpointAttempt?.correct === true : selectedAnswer === lesson.interactiveQuestion.correctOptionIndex;
   const progress = Math.min(100, Math.round(((state.lessonProgress[lesson.id] ?? 0) / lesson.durationSeconds) * 100));
   const beginTutor = () => {
+    if (!isOnline) {
+      Alert.alert("AI tutor needs a connection", "Your transcript, outline, flashcards, checkpoint, and progress remain available offline. Reconnect to ask a grounded tutor question.");
+      return;
+    }
     recordVideoProgress(lesson.id, selectedTime);
     router.push({ pathname: "/tutor/[lessonId]", params: { lessonId: lesson.id, timestamp: String(selectedTime) } });
   };
@@ -71,6 +84,10 @@ export default function LessonScreen() {
     answerCheckpoint(lesson.id, lesson.interactiveQuestion.id, lesson.interactiveQuestion.concept, isCorrect);
   };
   const requestNotes = () => {
+    if (!isOnline) {
+      setGeneratedNotes(createLessonOutline(lesson));
+      return;
+    }
     noteMutation.mutate({
       lessonTitle: lesson.title,
       concepts: lesson.concepts,
@@ -91,6 +108,7 @@ export default function LessonScreen() {
         <View style={styles.videoWrap}>
           <VideoView style={styles.video} player={player} nativeControls allowsFullscreen allowsPictureInPicture contentFit="contain" surfaceType="textureView" onFirstFrameRender={() => recordVideoStarted(lesson.id, selectedTime || 1)} />
         </View>
+        {!isOnline ? <Text style={styles.offlineNotice}>Offline mode: cached lesson content, outline, flashcards, checkpoints, and progress remain available. AI tutor requests will resume when you reconnect.</Text> : null}
 
         <View style={styles.body}>
           <Text style={styles.courseLabel}>JavaScript Foundations · {lesson.level}</Text>
@@ -151,6 +169,7 @@ const styles = StyleSheet.create({
   secondaryAction: { flex: 1, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: "#D8E0EF", alignItems: "center", justifyContent: "center" },
   secondaryActionText: { color: "#255CFF", fontSize: 14, fontWeight: "800" },
   errorText: { color: "#B54B4B", fontSize: 12, lineHeight: 18, marginTop: 10 },
+  offlineNotice: { color: "#6E5B16", backgroundColor: "#FFF7D6", paddingHorizontal: 20, paddingVertical: 10, fontSize: 12, lineHeight: 18 },
   segmented: { flexDirection: "row", padding: 4, backgroundColor: "#EDF1F7", borderRadius: 14, marginTop: 24 },
   segment: { flex: 1, minHeight: 36, alignItems: "center", justifyContent: "center", borderRadius: 10 },
   segmentActive: { backgroundColor: "#FFFFFF" },
