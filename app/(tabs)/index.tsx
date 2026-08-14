@@ -9,8 +9,8 @@ import { getCourseProgress, getLearningMinutes, nextLesson } from "@/lib/learnin
 import { useLearner } from "@/lib/learning/learner-context";
 import { haptic } from "@/lib/haptics";
 
-const LEARNVERSE_LOGO_URI = "/manus-storage/learnverse-logo_119d94e6.png";
-const LEARNVERSE_HERO_URI = "/manus-storage/learnverse-hero_780147ec.png";
+const LEARNVERSE_LOGO_ASSET = require("../../assets/images/icon.png");
+const LEARNVERSE_HERO_ASSET = require("../../assets/images/learnverse-hero-reference.png");
 
 /**
  * Home Screen - NativeWind Example
@@ -68,9 +68,9 @@ export default function HomeScreen() {
   return (
     <ScreenContainer className="px-5" containerClassName="bg-background">
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.heroTop}><View><Eyebrow>LearnVerse AI</Eyebrow><Text style={styles.greeting}>Learn with focus.{`\n`}Keep moving forward.</Text></View><View style={styles.avatar}><Image source={{ uri: LEARNVERSE_LOGO_URI }} style={styles.avatarLogo} accessibilityLabel="LearnVerse AI logo" /></View></View>
+        <View style={styles.heroTop}><View><Eyebrow>LearnVerse AI</Eyebrow><Text style={styles.greeting}>Learn with focus.{`\n`}Keep moving forward.</Text></View><View style={styles.avatar}><Image source={LEARNVERSE_LOGO_ASSET} style={styles.avatarLogo} accessibilityLabel="LearnVerse AI logo" /></View></View>
         <Text style={styles.heroCopy}>Turn each lesson into lasting understanding with guided practice, useful feedback, and a learning record you can trust.</Text>
-        <ImageBackground source={{ uri: LEARNVERSE_HERO_URI }} style={styles.heroVisual} imageStyle={styles.heroBackgroundImage} accessibilityRole="image" accessibilityLabel="Deep indigo and lavender abstract learning visual">
+        <ImageBackground source={LEARNVERSE_HERO_ASSET} style={styles.heroVisual} imageStyle={styles.heroBackgroundImage} accessibilityRole="image" accessibilityLabel="Deep indigo and lavender abstract learning visual">
           <View style={styles.heroTint} />
           <View style={styles.orbitRing} />
           <Animated.View style={[styles.floatCard, styles.floatCardBack, floatStyle]}><Text style={styles.floatCardLabel}>LEARNING PATH</Text><Text style={[styles.floatCardTitle, styles.floatCardBackTitle]}>Build momentum</Text><Text style={[styles.floatCardMeta, styles.floatCardBackMeta]}>01 · Focused practice</Text></Animated.View>
@@ -96,7 +96,7 @@ export default function HomeScreen() {
         <SectionTitle title="Recommended for your goal" />
         <Pressable onPress={() => router.push("/learning-path")} style={({ pressed }) => [styles.recommendation, pressed && styles.pressed]}><Text style={styles.recommendationKicker}>Start here</Text><Text style={styles.recommendationTitle}>From values to functions</Text><Text style={styles.recommendationBody}>A focused sequence that pairs each explanation with a quick way to check your understanding.</Text></Pressable>
       </ScrollView>
-      {isLaunching ? <Animated.View style={[styles.launchOverlay, launchOverlayStyle]} accessibilityViewIsModal accessibilityRole="alert"><View style={styles.launchCard}><Image source={{ uri: LEARNVERSE_LOGO_URI }} style={styles.launchLogo} accessibilityLabel="LearnVerse AI logo" /><Text style={styles.launchEyebrow}>NEXT UP</Text><Text style={styles.launchTitle}>{next.shortTitle}</Text><Text style={styles.launchBody}>Opening your focused lesson…</Text><View style={styles.launchRule}><View style={styles.launchRuleFill} /></View></View></Animated.View> : null}
+      {isLaunching ? <Animated.View style={[styles.launchOverlay, launchOverlayStyle]} accessibilityViewIsModal accessibilityRole="alert"><View style={styles.launchCard}><Image source={LEARNVERSE_LOGO_ASSET} style={styles.launchLogo} accessibilityLabel="LearnVerse AI logo" /><Text style={styles.launchEyebrow}>NEXT UP</Text><Text style={styles.launchTitle}>{next.shortTitle}</Text><Text style={styles.launchBody}>Opening your focused lesson…</Text><View style={styles.launchRule}><View style={styles.launchRuleFill} /></View></View></Animated.View> : null}
     </ScreenContainer>
   );
 }

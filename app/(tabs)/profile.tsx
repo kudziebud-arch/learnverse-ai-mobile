@@ -48,7 +48,7 @@ export default function ProfileScreen() {
           <Text style={styles.pathLabel}>Your current focus</Text>
           <Text style={styles.pathTitle}>Build confident programming foundations</Text>
           <View style={styles.pathProgress}><ProgressBar value={progress} color="#A9BAFF" /><Text style={styles.pathPercent}>{progress}%</Text></View>
-          <View style={styles.pathActions}><Pressable onPress={() => router.push("/learning-path")} style={({ pressed }) => [styles.pathButton, pressed && styles.pressed]} accessibilityRole="button"><Text style={styles.pathButtonText}>View learning path</Text></Pressable><Pressable onPress={() => router.push("/progress" as never)} style={({ pressed }) => [styles.pathButton, pressed && styles.pressed]} accessibilityRole="button"><Text style={styles.pathButtonText}>Progress</Text></Pressable></View>
+          <View style={styles.pathActions}><Pressable onPress={() => router.push("/learning-path")} style={({ pressed }) => [styles.pathButton, pressed && styles.pressed]} accessibilityRole="button"><Text style={styles.pathButtonText}>View learning path</Text></Pressable><Pressable onPress={() => router.push("/progress")} style={({ pressed }) => [styles.pathButton, pressed && styles.pressed]} accessibilityRole="button"><Text style={styles.pathButtonText}>Progress</Text></Pressable></View>
         </View>
 
         <Text style={[styles.sectionTitle, themeStyles.foreground]}>Learning record</Text>
