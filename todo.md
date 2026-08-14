@@ -60,3 +60,8 @@
 - [x] Add offline/online status and useful offline states without changing existing visual language
 - [x] Add deterministic tests for offline cache, queueing, and conflict-safe merge behavior
 - [x] Run full offline and production validation and save the release checkpoint
+
+- [x] Audit Android/iOS launch configuration, native dependency compatibility, asset references, deep links, and runtime logs
+- [x] Fix reproducible mobile startup blockers without changing existing UI or interaction design
+- [x] Validate native-compatible configuration, TypeScript, tests, lint, and production builds
+- [x] Save a launch-fix checkpoint and document remaining physical-device-only checks
