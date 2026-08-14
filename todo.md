@@ -49,3 +49,8 @@
 - [x] Audit all routes, runtime logs, tests, navigation, state persistence, accessibility, and production-sensitive flows
 - [x] Fix all reproducible defects and incomplete interaction states found in the audit
 - [x] Run full validation and save the corrected app release
+
+- [x] Compare pasted original brief against current implementation without changing existing UI or interfaces
+- [ ] Add remaining educator, creator, institution, administrator, collaboration, monetization, and external-service capabilities confirmed by the comparison
+- [x] Add deterministic tests for every newly implemented capability
+- [x] Run full validation and save the additive-only release checkpoint

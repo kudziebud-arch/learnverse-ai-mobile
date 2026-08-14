@@ -72,6 +72,13 @@ export default function ProfileScreen() {
           <Pressable onPress={() => { resetLearningState(); Alert.alert("Local learning state reset", "The learning state stored on this device has been cleared."); }} style={({ pressed }) => [styles.resetButton, pressed && styles.pressed]} accessibilityRole="button"><Text style={styles.resetButtonText}>Reset local learning state</Text></Pressable>
           {isAuthenticated ? <Pressable onPress={() => logout()} style={({ pressed }) => [styles.signOutButton, pressed && styles.pressed]} accessibilityRole="button"><Text style={styles.signOutButtonText}>Sign out on this device</Text></Pressable> : null}
         </View>
+
+        <Text style={[styles.sectionTitle, themeStyles.foreground]}>More learning tools</Text>
+        <View style={[styles.infoCard, themeStyles.card]}>
+          <Text style={[styles.infoTitle, themeStyles.foreground]}>Plan, retain, and apply</Text>
+          <Text style={[styles.infoBody, themeStyles.muted]}>Open the new Learning Hub for study plans, exam preparation, spaced review, knowledge links, analytics, skill evidence, and notification preferences.</Text>
+          <Pressable onPress={() => router.push("/learning-hub")} style={({ pressed }) => [styles.signOutButton, pressed && styles.pressed]} accessibilityRole="button"><Text style={styles.signOutButtonText}>Open Learning Hub</Text></Pressable>
+        </View>
       </ScrollView>
     </ScreenContainer>
   );

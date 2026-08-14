@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { Eyebrow } from "@/components/learnverse-ui";
 import { catalog, formatDuration } from "@/lib/learning/catalog";
+import { semanticMatch } from "@/lib/learning/search";
 
 const filters = ["All", "Courses", "Lessons", "Beginner"];
 
@@ -15,8 +16,9 @@ export default function DiscoverScreen() {
   const results = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     return catalog.flatMap((course) => {
-      const courseMatch = [course.title, course.subject, ...course.skills].join(" ").toLowerCase().includes(normalized);
-      const lessonMatches = course.lessons.filter((lesson) => [lesson.title, ...lesson.concepts].join(" ").toLowerCase().includes(normalized));
+              const courseMatch = semanticMatch(normalized, [course.title, course.subject, ...course.skills]);
+        const lessonMatches = course.lessons.filter((lesson) => semanticMatch(normalized, [lesson.title, ...lesson.concepts, lesson.description]));
+
       const showCourse = (activeFilter === "All" || activeFilter === "Courses" || activeFilter === "Beginner") && (courseMatch || normalized.length === 0);
       const showLessons = (activeFilter === "All" || activeFilter === "Lessons" || activeFilter === "Beginner") && (lessonMatches.length > 0 || normalized.length === 0);
       const items: { id: string; kind: "Course" | "Lesson"; title: string; detail: string }[] = [];
