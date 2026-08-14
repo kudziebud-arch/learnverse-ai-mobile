@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useEffect } from "react";
 import { useRouter } from "expo-router";
 import Animated, { cancelAnimation, Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
@@ -7,6 +7,9 @@ import { Eyebrow, ProgressBar, SectionTitle } from "@/components/learnverse-ui";
 import { formatDuration, starterCourse } from "@/lib/learning/catalog";
 import { getCourseProgress, getLearningMinutes, nextLesson } from "@/lib/learning/progress";
 import { useLearner } from "@/lib/learning/learner-context";
+
+const LEARNVERSE_LOGO_URI = "/manus-storage/learnverse-logo_119d94e6.png";
+const LEARNVERSE_HERO_URI = "/manus-storage/learnverse-hero_780147ec.png";
 
 /**
  * Home Screen - NativeWind Example
@@ -44,13 +47,14 @@ export default function HomeScreen() {
   return (
     <ScreenContainer className="px-5" containerClassName="bg-background">
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.heroTop}><View><Eyebrow>LearnVerse AI</Eyebrow><Text style={styles.greeting}>Learn with focus.{`\n`}Keep moving forward.</Text></View><View style={styles.avatar}><Text style={styles.avatarText}>L</Text></View></View>
+        <View style={styles.heroTop}><View><Eyebrow>LearnVerse AI</Eyebrow><Text style={styles.greeting}>Learn with focus.{`\n`}Keep moving forward.</Text></View><View style={styles.avatar}><Image source={{ uri: LEARNVERSE_LOGO_URI }} style={styles.avatarLogo} accessibilityLabel="LearnVerse AI logo" /></View></View>
         <Text style={styles.heroCopy}>Turn each lesson into lasting understanding with guided practice, useful feedback, and a learning record you can trust.</Text>
-        <View style={styles.heroVisual} pointerEvents="none" accessibilityRole="image" accessibilityLabel="Animated stack of learning cards">
+        <ImageBackground source={{ uri: LEARNVERSE_HERO_URI }} style={styles.heroVisual} imageStyle={styles.heroBackgroundImage} accessibilityRole="image" accessibilityLabel="Deep indigo and lavender abstract learning visual">
+          <View style={styles.heroTint} />
           <View style={styles.orbitRing} />
           <Animated.View style={[styles.floatCard, styles.floatCardBack, floatStyle]}><Text style={styles.floatCardLabel}>LEARNING PATH</Text><Text style={[styles.floatCardTitle, styles.floatCardBackTitle]}>Build momentum</Text><Text style={[styles.floatCardMeta, styles.floatCardBackMeta]}>01 · Focused practice</Text></Animated.View>
           <Animated.View style={[styles.floatCard, styles.floatCardFront, floatStyle]}><View style={styles.floatCardTop}><View style={styles.floatBadge}><Text style={styles.floatBadgeText}>L</Text></View><Text style={styles.floatSpark}>✦</Text></View><Text style={styles.floatCardLabel}>TODAY’S WIN</Text><Text style={styles.floatCardTitle}>One idea clearer</Text><Text style={styles.floatCardMeta}>Watch · Check · Remember</Text></Animated.View>
-        </View>
+        </ImageBackground>
 
         <SectionTitle title={progress === 0 ? "Start learning" : "Continue learning"} action={<Pressable onPress={() => router.push("/learning-path")} style={({ pressed }) => pressed && styles.textPressed}><Text style={styles.link}>View path</Text></Pressable>} />
         <Pressable onPress={() => router.push("/learning-path")} style={({ pressed }) => [styles.resumeCard, pressed && styles.pressed]} accessibilityRole="button">
@@ -81,8 +85,11 @@ const styles = StyleSheet.create({
   greeting: { color: "#172033", fontSize: 32, lineHeight: 37, fontWeight: "800", letterSpacing: -1.1, marginTop: 7 },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#E9EEFF", alignItems: "center", justifyContent: "center" },
   avatarText: { color: "#255CFF", fontWeight: "900", fontSize: 16 },
+  avatarLogo: { width: 30, height: 30, resizeMode: "contain" },
   heroCopy: { color: "#68738B", fontSize: 15, lineHeight: 22, marginTop: 11, marginBottom: 28, maxWidth: "93%" },
-  heroVisual: { height: 156, marginTop: -2, marginBottom: 25, borderRadius: 26, backgroundColor: "#EEF2FF", overflow: "hidden", position: "relative", alignItems: "center", justifyContent: "center" },
+  heroVisual: { height: 190, marginTop: -2, marginBottom: 25, borderRadius: 26, backgroundColor: "#111B3D", overflow: "hidden", position: "relative", alignItems: "center", justifyContent: "center" },
+  heroBackgroundImage: { borderRadius: 26 },
+  heroTint: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(17,27,61,0.24)" },
   orbitRing: { position: "absolute", width: 188, height: 188, borderRadius: 94, borderWidth: 1, borderColor: "#C9D5FF", transform: [{ rotateZ: "18deg" }] },
   floatCard: { position: "absolute", width: 170, minHeight: 104, borderRadius: 18, padding: 13, shadowColor: "#111B3D", shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 5 },
   floatCardBack: { backgroundColor: "#AEBEFF", transform: [{ translateX: -22 }, { translateY: -12 }, { rotateZ: "-8deg" }] },

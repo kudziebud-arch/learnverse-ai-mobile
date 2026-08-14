@@ -33,7 +33,7 @@
 - [ ] Complete physical Android/iOS QA on final signed builds
 - [ ] Configure production backups, monitoring, alerts, and named on-call ownership
 - [ ] Complete Apple/Google store account review and submission
-- [ ] Add lightweight 3D-inspired animated Home hero with reduced-motion support
+- [x] Add lightweight 3D-inspired animated Home hero with reduced-motion support
 - [x] Validate the animated Home implementation with type checking, tests, and lint
 - [x] Save the final Home-screen animation checkpoint
 
@@ -41,3 +41,4 @@
 
 - Physical-device QA, store submission, and external media/CDN activation require the user's hardware, accounts, and infrastructure ownership.
 - The current LearnVerse release is suitable for controlled staging, not an unqualified public-production claim.
+- [x] Remove the volume control from the opening visual/player treatment
