@@ -42,3 +42,7 @@
 - Physical-device QA, store submission, and external media/CDN activation require the user's hardware, accounts, and infrastructure ownership.
 - The current LearnVerse release is suitable for controlled staging, not an unqualified public-production claim.
 - [x] Remove the volume control from the opening visual/player treatment
+- [x] Add branded first-lesson launch transition
+- [x] Add optional haptic feedback for the first learning action
+- [x] Validate the transition and haptic implementation
+- [ ] Confirm the final generated hero asset on a physical Android and iOS device

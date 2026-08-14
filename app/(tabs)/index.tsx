@@ -1,5 +1,5 @@
 import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import Animated, { cancelAnimation, Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { ScreenContainer } from "@/components/screen-container";
@@ -7,6 +7,7 @@ import { Eyebrow, ProgressBar, SectionTitle } from "@/components/learnverse-ui";
 import { formatDuration, starterCourse } from "@/lib/learning/catalog";
 import { getCourseProgress, getLearningMinutes, nextLesson } from "@/lib/learning/progress";
 import { useLearner } from "@/lib/learning/learner-context";
+import { haptic } from "@/lib/haptics";
 
 const LEARNVERSE_LOGO_URI = "/manus-storage/learnverse-logo_119d94e6.png";
 const LEARNVERSE_HERO_URI = "/manus-storage/learnverse-hero_780147ec.png";
@@ -30,7 +31,11 @@ export default function HomeScreen() {
   const minutes = getLearningMinutes(state);
   const next = nextLesson(starterCourse, state);
   const floatY = useSharedValue(0);
+  const launchOpacity = useSharedValue(0);
+  const launchScale = useSharedValue(0.96);
   const reducedMotion = useReducedMotion();
+  const [isLaunching, setIsLaunching] = useState(false);
+  const launchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (reducedMotion) return;
     floatY.value = withRepeat(
@@ -44,6 +49,22 @@ export default function HomeScreen() {
     return () => cancelAnimation(floatY);
   }, [floatY, reducedMotion]);
   const floatStyle = useAnimatedStyle(() => ({ transform: [{ translateY: floatY.value }] }));
+  const launchOverlayStyle = useAnimatedStyle(() => ({ opacity: launchOpacity.value, transform: [{ scale: launchScale.value }] }));
+  const openNextLesson = useCallback(() => {
+    if (isLaunching) return;
+    if (progress === 0) haptic.light();
+    setIsLaunching(true);
+    const duration = reducedMotion ? 0 : 220;
+    launchOpacity.value = withTiming(1, { duration });
+    launchScale.value = withTiming(1, { duration });
+    launchTimer.current = setTimeout(() => {
+      router.push({ pathname: "/lesson/[id]", params: { id: next.id } });
+      setIsLaunching(false);
+      launchOpacity.value = 0;
+      launchScale.value = 0.96;
+    }, reducedMotion ? 80 : 520);
+  }, [isLaunching, launchOpacity, launchScale, next.id, progress, reducedMotion, router]);
+  useEffect(() => () => { if (launchTimer.current) clearTimeout(launchTimer.current); }, []);
   return (
     <ScreenContainer className="px-5" containerClassName="bg-background">
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -57,7 +78,7 @@ export default function HomeScreen() {
         </ImageBackground>
 
         <SectionTitle title={progress === 0 ? "Start learning" : "Continue learning"} action={<Pressable onPress={() => router.push("/learning-path")} style={({ pressed }) => pressed && styles.textPressed}><Text style={styles.link}>View path</Text></Pressable>} />
-        <Pressable onPress={() => router.push("/learning-path")} style={({ pressed }) => [styles.resumeCard, pressed && styles.pressed]} accessibilityRole="button">
+        <Pressable onPress={openNextLesson} disabled={isLaunching} style={({ pressed }) => [styles.resumeCard, pressed && styles.pressed, isLaunching && styles.disabled]} accessibilityRole="button" accessibilityLabel={`Open lesson ${next.shortTitle}`}>
           <View style={styles.resumeAccent}><Text style={styles.resumeAccentText}>01</Text></View>
           <View style={styles.resumeCopy}><Text style={styles.resumeCourse}>{starterCourse.title}</Text><Text style={styles.resumeTitle}>{next.shortTitle}</Text><Text style={styles.resumeMeta}>{formatDuration(next.durationSeconds)} · {next.level}</Text></View><Text style={styles.resumeArrow}>›</Text>
         </Pressable>
@@ -75,6 +96,7 @@ export default function HomeScreen() {
         <SectionTitle title="Recommended for your goal" />
         <Pressable onPress={() => router.push("/learning-path")} style={({ pressed }) => [styles.recommendation, pressed && styles.pressed]}><Text style={styles.recommendationKicker}>Start here</Text><Text style={styles.recommendationTitle}>From values to functions</Text><Text style={styles.recommendationBody}>A focused sequence that pairs each explanation with a quick way to check your understanding.</Text></Pressable>
       </ScrollView>
+      {isLaunching ? <Animated.View style={[styles.launchOverlay, launchOverlayStyle]} accessibilityViewIsModal accessibilityRole="alert"><View style={styles.launchCard}><Image source={{ uri: LEARNVERSE_LOGO_URI }} style={styles.launchLogo} accessibilityLabel="LearnVerse AI logo" /><Text style={styles.launchEyebrow}>NEXT UP</Text><Text style={styles.launchTitle}>{next.shortTitle}</Text><Text style={styles.launchBody}>Opening your focused lesson…</Text><View style={styles.launchRule}><View style={styles.launchRuleFill} /></View></View></Animated.View> : null}
     </ScreenContainer>
   );
 }
@@ -130,4 +152,13 @@ const styles = StyleSheet.create({
   recommendationBody: { color: "#68738B", fontSize: 13, lineHeight: 19, marginTop: 7 },
   pressed: { opacity: 0.72, transform: [{ scale: 0.985 }] },
   textPressed: { opacity: 0.58 },
+  disabled: { opacity: 0.62 },
+  launchOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(17,27,61,0.96)", zIndex: 20, alignItems: "center", justifyContent: "center", paddingHorizontal: 28 },
+  launchCard: { width: "100%", maxWidth: 330, borderRadius: 26, backgroundColor: "#1D2A5B", borderWidth: 1, borderColor: "#7F95F0", padding: 24, alignItems: "center", shadowColor: "#000000", shadowOpacity: 0.25, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 8 },
+  launchLogo: { width: 54, height: 54, resizeMode: "contain", marginBottom: 18 },
+  launchEyebrow: { color: "#A9BAFF", fontSize: 11, fontWeight: "800", letterSpacing: 1.2 },
+  launchTitle: { color: "#FFFFFF", fontSize: 23, lineHeight: 29, fontWeight: "800", textAlign: "center", marginTop: 7 },
+  launchBody: { color: "#D6DDF9", fontSize: 13, marginTop: 7 },
+  launchRule: { width: "100%", height: 5, borderRadius: 3, backgroundColor: "#38487D", marginTop: 21, overflow: "hidden" },
+  launchRuleFill: { width: "42%", height: "100%", borderRadius: 3, backgroundColor: "#A9BAFF" },
 });
