@@ -12,25 +12,32 @@
 - [x] Document production backend, AI Gateway, media pipeline, security, and role expansion boundaries
 - [x] Generate custom LearnVerse branding assets and configure Android/iOS app identity
 - [x] Add deterministic unit tests and validate type safety
-- [x] Audit and refine all existing learning flows, interaction states, accessibility labels, and resilience behavior
+- [x] Audit and refine learning flows, interaction states, accessibility labels, and resilience behavior
 - [x] Extend deterministic tests to cover persisted learner state and core utility behavior
-- [x] Run final type, unit, lint, and build validation for the refinement release
-- [x] Define the production delivery architecture and environment boundaries
+- [x] Run type, unit, lint, and build validation for the refinement release
+- [x] Define production delivery architecture and environment boundaries
 - [x] Implement authentication-aware learner cloud synchronization and server-side authorization
 - [x] Model production roles, organizations, courses, lessons, progress, and moderation records
 - [x] Add production media, upload, moderation, and background-processing service contracts
 - [x] Add security controls, audit trails, operational health checks, and release readiness documentation
 - [x] Expand automated tests for cloud data, authorization, and security-sensitive behavior
 - [x] Validate the production-foundation release and document remaining external deployment actions
-- [x] Assess managed media/CDN, worker, monitoring, backup, store, and dark-mode integration requirements
-- [x] Add secure media delivery configuration, job-worker controls, monitoring events, and incident records
-- [x] Refine learner-facing product copy and add a persistent light/dark/system appearance selector
+- [x] Add managed signed media delivery, platform-owned incident notifications, and worker authentication
+- [x] Refine learner-facing product copy and add persistent light/dark/system appearance selection
 - [x] Produce store listing copy, privacy/review responses, physical-device QA plan, and operating runbooks
-- [x] Validate the expanded production release and document external activation actions
-- [x] Save and validate the secure media-worker configuration; use managed signed delivery and built-in owner notifications until optional external CDN/webhook values are supplied
-- [x] Configure managed signed media delivery, platform-owned incident notifications, and generated worker authentication
-- [x] Assess persistent worker deployment, managed CDN activation, and physical-device QA constraints
 - [x] Package and validate a persistent authenticated LearnVerse media worker
 - [x] Add CDN activation controls, release gating, and worker operational hardening
-- [x] Document persistent worker deployment choices, CDN activation gates, and the industry-release infrastructure handoff
-- [x] Execute deterministic industry-readiness validation and finalize the physical-device QA handoff
+- [x] Document persistent worker deployment choices, CDN activation gates, and industry-release infrastructure handoff
+- [x] Execute deterministic industry-readiness validation
+- [ ] Complete external media processor deployment and persistent worker activation
+- [ ] Complete physical Android/iOS QA on final signed builds
+- [ ] Configure production backups, monitoring, alerts, and named on-call ownership
+- [ ] Complete Apple/Google store account review and submission
+- [ ] Add lightweight 3D-inspired animated Home hero with reduced-motion support
+- [x] Validate the animated Home implementation with type checking, tests, and lint
+- [x] Save the final Home-screen animation checkpoint
+
+## Notes
+
+- Physical-device QA, store submission, and external media/CDN activation require the user's hardware, accounts, and infrastructure ownership.
+- The current LearnVerse release is suitable for controlled staging, not an unqualified public-production claim.

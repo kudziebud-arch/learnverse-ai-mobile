@@ -1,5 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect } from "react";
 import { useRouter } from "expo-router";
+import Animated, { cancelAnimation, Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { ScreenContainer } from "@/components/screen-container";
 import { Eyebrow, ProgressBar, SectionTitle } from "@/components/learnverse-ui";
 import { formatDuration, starterCourse } from "@/lib/learning/catalog";
@@ -24,11 +26,31 @@ export default function HomeScreen() {
   const progress = getCourseProgress(starterCourse, state);
   const minutes = getLearningMinutes(state);
   const next = nextLesson(starterCourse, state);
+  const floatY = useSharedValue(0);
+  const reducedMotion = useReducedMotion();
+  useEffect(() => {
+    if (reducedMotion) return;
+    floatY.value = withRepeat(
+      withSequence(
+        withTiming(-6, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
+        withTiming(6, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+      true,
+    );
+    return () => cancelAnimation(floatY);
+  }, [floatY, reducedMotion]);
+  const floatStyle = useAnimatedStyle(() => ({ transform: [{ translateY: floatY.value }] }));
   return (
     <ScreenContainer className="px-5" containerClassName="bg-background">
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.heroTop}><View><Eyebrow>LearnVerse AI</Eyebrow><Text style={styles.greeting}>Learn with focus.{`\n`}Keep moving forward.</Text></View><View style={styles.avatar}><Text style={styles.avatarText}>L</Text></View></View>
         <Text style={styles.heroCopy}>Turn each lesson into lasting understanding with guided practice, useful feedback, and a learning record you can trust.</Text>
+        <View style={styles.heroVisual} pointerEvents="none" accessibilityRole="image" accessibilityLabel="Animated stack of learning cards">
+          <View style={styles.orbitRing} />
+          <Animated.View style={[styles.floatCard, styles.floatCardBack, floatStyle]}><Text style={styles.floatCardLabel}>LEARNING PATH</Text><Text style={[styles.floatCardTitle, styles.floatCardBackTitle]}>Build momentum</Text><Text style={[styles.floatCardMeta, styles.floatCardBackMeta]}>01 · Focused practice</Text></Animated.View>
+          <Animated.View style={[styles.floatCard, styles.floatCardFront, floatStyle]}><View style={styles.floatCardTop}><View style={styles.floatBadge}><Text style={styles.floatBadgeText}>L</Text></View><Text style={styles.floatSpark}>✦</Text></View><Text style={styles.floatCardLabel}>TODAY’S WIN</Text><Text style={styles.floatCardTitle}>One idea clearer</Text><Text style={styles.floatCardMeta}>Watch · Check · Remember</Text></Animated.View>
+        </View>
 
         <SectionTitle title={progress === 0 ? "Start learning" : "Continue learning"} action={<Pressable onPress={() => router.push("/learning-path")} style={({ pressed }) => pressed && styles.textPressed}><Text style={styles.link}>View path</Text></Pressable>} />
         <Pressable onPress={() => router.push("/learning-path")} style={({ pressed }) => [styles.resumeCard, pressed && styles.pressed]} accessibilityRole="button">
@@ -60,6 +82,20 @@ const styles = StyleSheet.create({
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#E9EEFF", alignItems: "center", justifyContent: "center" },
   avatarText: { color: "#255CFF", fontWeight: "900", fontSize: 16 },
   heroCopy: { color: "#68738B", fontSize: 15, lineHeight: 22, marginTop: 11, marginBottom: 28, maxWidth: "93%" },
+  heroVisual: { height: 156, marginTop: -2, marginBottom: 25, borderRadius: 26, backgroundColor: "#EEF2FF", overflow: "hidden", position: "relative", alignItems: "center", justifyContent: "center" },
+  orbitRing: { position: "absolute", width: 188, height: 188, borderRadius: 94, borderWidth: 1, borderColor: "#C9D5FF", transform: [{ rotateZ: "18deg" }] },
+  floatCard: { position: "absolute", width: 170, minHeight: 104, borderRadius: 18, padding: 13, shadowColor: "#111B3D", shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 5 },
+  floatCardBack: { backgroundColor: "#AEBEFF", transform: [{ translateX: -22 }, { translateY: -12 }, { rotateZ: "-8deg" }] },
+  floatCardFront: { backgroundColor: "#111B3D", transform: [{ translateX: 18 }, { translateY: 8 }, { rotateZ: "6deg" }] },
+  floatCardBackTitle: { color: "#111B3D" },
+  floatCardBackMeta: { color: "#255CFF" },
+  floatCardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 11 },
+  floatBadge: { width: 23, height: 23, borderRadius: 8, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
+  floatBadgeText: { color: "#255CFF", fontSize: 11, fontWeight: "900" },
+  floatSpark: { color: "#A9BAFF", fontSize: 18 },
+  floatCardLabel: { color: "#D6DDF9", fontSize: 9, fontWeight: "800", letterSpacing: 0.8 },
+  floatCardTitle: { color: "#FFFFFF", fontSize: 15, fontWeight: "800", marginTop: 5 },
+  floatCardMeta: { color: "#D6DDF9", fontSize: 10, marginTop: 6 },
   link: { color: "#255CFF", fontSize: 13, fontWeight: "800" },
   resumeCard: { backgroundColor: "#FFFFFF", borderRadius: 20, borderWidth: 1, borderColor: "#E6EAF2", padding: 15, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 30 },
   resumeAccent: { width: 47, height: 58, borderRadius: 15, backgroundColor: "#E9EEFF", alignItems: "center", justifyContent: "center" },
