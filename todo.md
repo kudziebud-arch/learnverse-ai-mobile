@@ -65,3 +65,9 @@
 - [x] Fix reproducible mobile startup blockers without changing existing UI or interaction design
 - [x] Validate native-compatible configuration, TypeScript, tests, lint, and production builds
 - [x] Save a launch-fix checkpoint and document remaining physical-device-only checks
+
+- [x] Audit the current Expo web runtime, routes, responsive behavior, asset references, and browser errors
+- [x] Convert the presentation to a browser-first web experience while preserving existing learning UI and features
+- [x] Fix reproducible web launch, navigation, media, and interaction errors
+- [x] Validate responsive web routes, interactions, tests, lint, and production build
+- [x] Save the web-conversion checkpoint and document remaining platform limitations
