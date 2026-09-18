@@ -79,6 +79,12 @@ export default function ProfileScreen() {
           <Text style={[styles.infoBody, themeStyles.muted]}>Open the new Learning Hub for study plans, exam preparation, spaced review, knowledge links, analytics, skill evidence, and notification preferences.</Text>
           <Pressable onPress={() => router.push("/learning-hub")} style={({ pressed }) => [styles.signOutButton, pressed && styles.pressed]} accessibilityRole="button"><Text style={styles.signOutButtonText}>Open Learning Hub</Text></Pressable>
         </View>
+
+        <View style={[styles.infoCard, themeStyles.card]}>
+          <Text style={[styles.infoTitle, themeStyles.foreground]}>Role workspaces</Text>
+          <Text style={[styles.infoBody, themeStyles.muted]}>Additive planning surfaces for educators, creators, institutions, and administrators. External service activation remains clearly marked.</Text>
+          <Pressable onPress={() => router.push("/role-workspace")} style={({ pressed }) => [styles.signOutButton, pressed && styles.pressed]} accessibilityRole="button"><Text style={styles.signOutButtonText}>Open role workspace</Text></Pressable>
+        </View>
       </ScrollView>
     </ScreenContainer>
   );

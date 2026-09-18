@@ -91,6 +91,8 @@ export default function RootLayout() {
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="learning-path" />
               <Stack.Screen name="progress" />
+              <Stack.Screen name="learning-hub" />
+              <Stack.Screen name="role-workspace" />
               <Stack.Screen name="lesson/[id]" />
               <Stack.Screen name="tutor/[lessonId]" />
               <Stack.Screen name="oauth/callback" />
