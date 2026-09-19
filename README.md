@@ -1,51 +1,50 @@
 # LearnVerse AI
 
-> **Watch → Understand → Practice → Apply**
+> **Watch → Understand → Practice → Apply → Measure → Improve**
 
-LearnVerse AI is an AI-native educational learning platform for structured video lessons, grounded tutoring, active recall, measurable progress, and offline-friendly study. It is designed to help learners move beyond passive video consumption toward verifiable understanding and practical application.
+LearnVerse AI is an AI-native educational video platform for structured lessons, grounded tutoring, active recall, measurable progress, and offline-friendly study. Video is the starting point; the product is designed to help learners build and demonstrate understanding.
 
-The current release is **browser-first** and also retains the Expo-native Android/iOS presentation. The web experience uses a desktop-friendly top navigation, responsive layouts, bundled learning content, local persistence, and the same learning flows used by the native presentation.
+This repository contains a **browser-first web application** with retained Expo Android/iOS support. The codebase is validated for controlled staging. Public production readiness additionally depends on activating external infrastructure, completing legal and operational ownership, and passing physical-device or store gates where native release is in scope.
 
-## Product Overview
+## Current release decision
 
-LearnVerse AI combines short educational video with chapters, transcripts, checkpoints, flashcards, contextual AI tutoring, study planning, retention tools, and progress evidence. The experience is intentionally organized around a learning loop:
+**Code status: staging-ready. Public production status: not yet approved.**
+
+The application code, server boundaries, worker package, automated tests, static web export, and operational documentation are present. The release must not be called public-production-ready until the external gates in the [production activation checklist](#production-activation-checklist) have evidence attached to the release record.
+
+## Product loop
 
 | Stage | Learner experience | Evidence created |
 |---|---|---|
-| Watch | Discover a concept and watch a structured lesson with chapters. | Playback progress and lesson-start events. |
-| Understand | Read the transcript, inspect the verified lesson outline, and ask a lesson-grounded tutor. | Tutor context, notes, and concept links. |
+| Watch | Discover a structured lesson with chapters and browser/native video playback. | Playback progress and lesson-start events. |
+| Understand | Read the transcript, inspect the lesson outline, take notes, and ask a lesson-grounded tutor. | Notes, tutor context, and concept links. |
 | Practice | Answer checkpoints, review flashcards, and revisit weak concepts. | Quiz attempts, review events, and accuracy. |
 | Apply | Follow a study plan, connect prerequisites, build artifacts, and monitor progress. | Plans, retention schedules, analytics, certificates, and portfolio evidence. |
+| Measure and improve | Use progress signals and spaced review to select the next action. | Completion, velocity, streak, mastery, and review evidence. |
 
-## Main Features
+## Implemented capabilities
 
 ### Learner experience
 
-The Home screen presents a branded learning entry point, animated learning hero, current course focus, first-lesson launch transition, and a clear next action. Discover supports concept-first browsing, filters, course and lesson cards, and deterministic natural-language semantic matching for requests such as “teach me recursion.”
+The Home screen provides the branded entry point, animated learning hero, current course focus, first-lesson launch transition, and a clear next action. Explore supports concept-first discovery, filters, course cards, lesson cards, and deterministic natural-language matching for requests such as “teach me recursion.”
 
-The lesson experience includes browser-compatible video playback, chapters, transcript segments, verified lesson outlines, checkpoint questions, flashcards, progress recording, completion actions, and a contextual tutor entry point. The opening visual does not expose an unnecessary volume control outside the video player’s native controls.
+The lesson experience includes video playback, chapters, transcript segments, verified outlines, checkpoint questions, flashcards, notes, progress recording, completion actions, and contextual tutor entry. Offline learners retain approved bundled lesson materials and queued progress changes. Network-dependent AI actions explain the limitation instead of presenting a dead end.
 
-### Learning Hub
+### Learning Hub and workspaces
 
-The Learning Hub adds study planning, focus sessions, exam preparation, knowledge-graph relationships, spaced review, analytics, notification preferences, learner artifacts, certificates, and portfolio evidence. These tools are additive and do not remove the original learning screens.
+The Learning Hub provides study planning, exam preparation, knowledge-graph relationships, spaced review, analytics, notification preferences, learner artifacts, certificates, and portfolio evidence.
 
-### Offline-first learning
+The additive Role Workspaces route provides planning surfaces for educators, creators, institutions, and administrators. It includes role-specific metrics, operational action plans, activation boundaries, and a study-room blueprint. The blueprint is intentionally not presented as a live video room; real-time collaboration still requires a separately activated service.
 
-LearnVerse stores learner progress and approved local study state on the device. While offline, learners can continue using bundled lesson metadata, transcripts, verified outlines, flashcards, checkpoints, Learning Hub plans, and progress tracking. Authenticated cloud changes are queued locally and merged with remote learning evidence after reconnection using conflict-safe progress and event merging.
+### Account, security, and cloud state
 
-AI tutor and server-generated notes require network access. When offline, the interface explains the limitation and keeps local lesson materials available instead of presenting a dead-end action.
+Authentication uses the configured OAuth flow and protected server procedures. Local learner state is merged with the authenticated account and synchronized through validated server boundaries. Organization membership and server-side authorization determine access to organization, course, media, moderation, and operational procedures. Client state is not treated as an authorization source.
 
-### Appearance and accessibility
+### Media control plane
 
-Learners can choose System, Light, or Dark appearance. The preference persists locally. Primary actions expose accessibility roles and labels, and the app includes reduced-motion behavior for non-essential animation. Final deployments still require a formal keyboard, screen-reader, contrast, text-scaling, and device accessibility review.
+The repository contains durable media-job records, signed delivery controls, queue monitoring and stale-job recovery contracts, authenticated worker dispatch, and a separate Node.js worker package. A real transcoding, transcription, object-storage, and CDN deployment is still required before uploading production content.
 
-### Authentication and cloud state
-
-The account flow uses OAuth-based authentication with protected server procedures. After sign-in, local activity is merged with the authenticated learner record and synchronized through validated server boundaries. The client does not decide organization permissions; protected server procedures use authenticated ownership and organization membership.
-
-## Browser-First Web Experience
-
-The web build is generated through Expo Router static rendering and includes the following route groups:
+## Browser-first routes
 
 | Route | Purpose |
 |---|---|
@@ -53,221 +52,223 @@ The web build is generated through Expo Router static rendering and includes the
 | `/discover` | Concept, course, and lesson discovery. |
 | `/study` | Practice signals, flashcard review, and understanding checks. |
 | `/tutor` | AI tutor entry point. |
-| `/profile` | Account state, appearance, privacy, progress, and Learning Hub entry. |
+| `/profile` | Account, appearance, privacy, progress, and workspace links. |
 | `/learning-hub` | Planning, exam preparation, knowledge graph, retention, analytics, and artifacts. |
+| `/role-workspace` | Educator, creator, institution, administrator, and study-room planning surfaces. |
 | `/learning-path` | Course learning path. |
 | `/progress` | Progress and mastery view. |
 | `/lesson/[id]` | Interactive lesson experience. |
 | `/tutor/[lessonId]` | Lesson-contextual tutoring. |
 | `/oauth/callback` | Authentication callback. |
 
-Use valid lesson IDs such as `lesson-js-values` and `lesson-js-functions` when testing lesson routes. A route such as `/lesson/variables-values` is not a valid lesson identifier and correctly displays the unavailable-lesson state.
+Use `lesson-js-values` and `lesson-js-functions` when testing lesson routes. Invalid lesson IDs correctly display the unavailable-lesson state.
 
-The web navigator uses a top navigation bar at desktop widths. Native platforms retain the original tab navigator. This platform-specific separation preserves the strong mobile interaction model without forcing mobile-only navigation on desktop users.
+The web build uses a desktop-friendly top navigation. Native platforms retain the original tab navigation. This separation is intentional and preserves the mobile interaction model without forcing mobile-only navigation on desktop users.
 
-## Technical Architecture
+## Architecture
 
 | Layer | Implementation |
 |---|---|
-| Web and native client | React 19, React Native, Expo SDK 54, Expo Router, TypeScript, NativeWind, React Native Web. |
-| UI and motion | NativeWind, React Native Reanimated, Expo Haptics, responsive platform layouts, reduced-motion handling. |
+| Client | React 19, React Native, Expo SDK 54, Expo Router, TypeScript, NativeWind, and React Native Web. |
+| UI and motion | NativeWind, React Native Reanimated, Expo Haptics, responsive layouts, and reduced-motion behavior. |
 | Video | Expo Video with browser/native playback controls and persisted progress events. |
-| Local state | React context, AsyncStorage persistence, versioned offline sync queue, conflict-safe merge utilities. |
-| Server API | Node.js, Express, tRPC, protected procedures, input validation, OAuth/session boundaries. |
-| Database | Drizzle ORM with managed relational database migrations and organization/RBAC/media models. |
-| AI | Server-side grounded tutor and note-generation procedures; credentials remain server-side. |
-| Media control plane | Durable media-job records, signed delivery controls, worker authentication, queue monitoring, and recovery contracts. |
-| Worker | Separate authenticated Node.js worker package for bounded media-job claiming and completion reporting. |
-| Validation | Vitest, TypeScript, Expo lint, Expo Doctor, static web export, server build, and worker build. |
+| Local state | React context, AsyncStorage persistence, offline queueing, and conflict-safe merge utilities. |
+| API | Node.js, Express, tRPC, input validation, OAuth/session boundaries, and protected procedures. |
+| Database | Drizzle ORM with relational migrations for organizations, memberships, courses, lessons, learning state, media jobs, moderation, and audits. |
+| AI | Server-side grounded tutor and note-generation procedures. Credentials remain server-side. |
+| Media worker | Separate authenticated Node.js worker that claims bounded jobs and reports completion. |
+| Validation | Vitest, TypeScript, Expo lint, Expo Doctor, web export, server build, worker build, and manual QA protocols. |
 
-## Repository Structure
+## Repository structure
 
 ```text
-app/                       Expo Router routes and platform-specific web/native layouts
+app/                       Expo Router routes and web/native layouts
 components/                Shared screen, UI, progress, and interaction components
 constants/                 OAuth, theme, and app constants
-drizzle/                   Database migration files and schema relationships
+drizzle/                   Database migrations and schema metadata
 hooks/                     Authentication, color, and platform hooks
-lib/learning/              Catalog, learner state, persistence, planning, search, and offline sync
-server/                    tRPC routers, database access, storage, auth, and operational boundaries
+lib/learning/              Catalog, learner state, planning, search, and offline sync
+server/                    tRPC routers, database access, auth, storage, and operations
 shared/                    Shared types and production contracts
 tests/                     Deterministic unit and API-boundary tests
 worker/                    Authenticated persistent media-worker package
-assets/images/             App icon, splash, hero, and native/web brand assets
+assets/images/             App icon, splash, hero, and brand assets
 ```
 
-Important documents:
-
-| Document | Purpose |
-|---|---|
-| `ARCHITECTURE.md` | System architecture and service boundaries. |
-| `DATABASE.md` | Relational data model and migration guidance. |
-| `API.md` | API procedures and authorization boundaries. |
-| `SECURITY.md` | Security controls and threat considerations. |
-| `DEPLOYMENT.md` | Deployment environment and release procedures. |
-| `OPERATIONS_RUNBOOK.md` | Media operations, incidents, backups, and recovery. |
-| `WORKER_DEPLOYMENT.md` | Persistent worker deployment procedure. |
-| `PHYSICAL_DEVICE_QA.md` | Android and iOS physical-device QA protocol. |
-| `STORE_RELEASE_CHECKLIST.md` | Native store preparation and submission checklist. |
-| `INDUSTRY_RELEASE_HANDOFF.md` | External activation gates and current release boundary. |
-| `INDUSTRY_READINESS_ROADMAP.md` | Complete step-by-step industry and education launch plan. |
-| `ADDITIVE_REQUIREMENTS_GAP.md` | Original-brief comparison and additive feature scope. |
-
-## Local Development
+## Local development
 
 ### Prerequisites
 
-Install Node.js 22 or a compatible current LTS version, pnpm, and Git. A managed database and production credentials are not required for local UI exploration, but authenticated cloud features require a configured development server and valid environment values.
+Install Node.js 22 or a compatible current LTS version, pnpm, and Git. Local UI exploration does not require production credentials. Authenticated cloud synchronization, database migrations, media processing, and AI procedures require configured development services.
 
-### Install dependencies
+### Install and run
 
 ```bash
 pnpm install
-```
-
-### Start the browser-first development environment
-
-```bash
 pnpm dev
 ```
 
-The development command starts the API server and Expo Metro web server. The browser preview is served on the configured Expo port, normally `8081`, while the API server normally listens on port `3000`.
+The development command starts the API server and Expo Metro web server. The browser preview normally uses port `8081`; the API normally uses port `3000`.
 
-### Run the browser-only development server
-
-```bash
-pnpm dev:metro
-```
-
-### Run the native development commands if native support is retained
+Useful commands:
 
 ```bash
-pnpm android
-pnpm ios
+pnpm dev:metro       # browser-only Metro server
+pnpm android         # native Android development target
+pnpm ios             # native iOS development target
+pnpm check           # TypeScript validation
+pnpm test            # deterministic tests
+pnpm lint            # Expo lint
+pnpm build           # server and worker production bundles
+pnpm db:push         # generate and apply Drizzle migrations
 ```
 
-Physical-device use requires a fresh managed/development build with the correct app configuration, not an outdated cached build.
+### Environment configuration
 
-## Environment Configuration
+Never commit production secrets. Configure values through the project’s secure environment mechanism and keep development, staging, and production values separate.
 
-Never commit production secrets. Use the project’s secure environment configuration for server and build values.
-
-| Variable or control | Purpose |
+| Variable or control | Required use |
 |---|---|
 | `DATABASE_URL` | Managed relational database connection. |
 | `JWT_SECRET` | Server-side session-token verification. |
-| OAuth portal/server/app values | Sign-in, callback, and account identity configuration. |
-| `EXPO_PUBLIC_API_BASE_URL` or equivalent API configuration | Public client API origin for the selected environment. |
-| `MEDIA_WORKER_TOKEN` | Authenticates the dedicated media worker. |
-| Object-storage credentials | Used only by the server/media worker, never by clients. |
-| Built-in AI credentials | Used only by server-side AI procedures. |
+| OAuth application values | Web/native sign-in, callback URLs, and account identity. |
+| `EXPO_PUBLIC_API_BASE_URL` or equivalent | Client API origin for the selected environment. |
+| `MEDIA_WORKER_TOKEN` | Authenticated worker-to-server requests. |
+| Object-storage credentials | Server and worker only; never expose to clients. |
+| AI provider credentials | Server-side tutor and note procedures only. |
+| Monitoring and notification credentials | Operations service only. |
 
-For web production, configure the exact HTTPS domain and OAuth callback URL. For native production, configure the generated deep-link scheme and platform bundle identifiers. Keep development, staging, and production credentials separate.
+For web release, configure the exact HTTPS domain and OAuth callback URL. For native release, configure the generated deep-link scheme, Android package, iOS bundle identifier, signing ownership, and physical-device callback validation.
 
-## Testing and Validation
+## Validation before every release
 
-Run the core validation suite:
+Run the complete automated validation sequence from a clean dependency install:
 
 ```bash
+pnpm install --frozen-lockfile
 pnpm check
 pnpm test
 pnpm lint
 pnpm build
-```
-
-Run Expo compatibility checks:
-
-```bash
 npx expo-doctor
-```
-
-Create a production web export:
-
-```bash
 rm -rf dist/web-export
 npx expo export --platform web --output-dir dist/web-export
 ```
 
-A valid export must contain `dist/web-export/index.html`, web JavaScript and CSS bundles, and static route output. The current validated release has passed Expo Doctor, TypeScript, lint, automated tests, static web export, server build, and worker build. One authentication logout test remains intentionally skipped because it depends on an external authentication environment.
+The web export must contain `dist/web-export/index.html`, JavaScript and CSS bundles, and the static routes listed above. The current validated release has passed TypeScript, automated tests, lint, Expo Doctor, server build, worker build, and static web export. The intentionally skipped authentication test remains dependent on an external authentication environment and must be covered by staging smoke tests.
 
-### Manual web QA
+## Production activation checklist
 
-Test the deployed staging domain in current Chrome, Safari, Firefox, and Edge. Verify desktop and narrow browser widths, keyboard access, focus visibility, lesson navigation, chapter seeking, transcript and notes tabs, checkpoint submission, flashcard reveal, Learning Hub actions, theme persistence, offline queue behavior, reconnect sync, OAuth callback, error states, and invalid-route handling.
+The following sequence turns the validated repository into an operated release. Each item requires a named owner, a completion date, and evidence attached to the release record.
 
-### Manual native QA
+### 1. Create isolated environments
 
-If Android and iOS remain release targets, execute every case in `PHYSICAL_DEVICE_QA.md` on at least one current Android device and one current iPhone. Record the device, OS version, build identifier, result, evidence, and issue disposition.
+Create separate staging and production projects. Use separate domains, databases, OAuth applications, storage buckets, worker tokens, AI credentials, and monitoring destinations. Confirm that production credentials cannot be read by the client bundle or staging services.
 
-## Production Readiness Boundary
+**Evidence:** environment inventory, secret ownership record, and successful secret scan.
 
-The codebase is suitable for **controlled staging and infrastructure activation**. It is not an unconditional public-industry release until the external gates below are complete.
+### 2. Provision and migrate the database
 
-### Required before a controlled education pilot
+Provision the managed relational database, restrict network access, apply migrations, create the least-privilege application identity, and verify connection pooling. Test a migration on staging before applying it to production.
 
-1. Deploy a real staging web domain with HTTPS.
-2. Configure production-like OAuth callbacks and account recovery support.
-3. Provision and migrate a managed database.
-4. Deploy a real media processor and authenticated persistent worker.
-5. Process a real test asset through upload, transcoding, captions, playback, retry, and rights revocation.
-6. Configure monitoring, backups, alert routing, and named incident ownership.
-7. Publish privacy, terms, acceptable-use, support, and data-retention documents.
-8. Have educators review the initial course, transcript, captions, checkpoints, flashcards, and AI grounding.
-9. Complete security, accessibility, and web resilience QA.
-10. Run a small controlled learner pilot with defined success metrics.
+```bash
+pnpm db:push
+```
 
-### Required before broad institutional or commercial use
+**Evidence:** migration journal, schema review, backup policy, restore test, and production readiness check.
 
-Add institution administration, educator authoring, creator rights and publishing, learner enrollment, moderation workflows, certificates and portfolio export, reporting, support tooling, billing or a documented free-pilot decision, collaboration policies if applicable, education privacy/compliance approval, incident drills, restore drills, capacity testing, and a signed go/no-go review.
+### 3. Configure authentication
 
-### Native-store requirements if applicable
+Register the exact web and native callback URLs. Verify sign-in, sign-out, session expiry, account recovery, unauthorized access, and cross-account isolation. Confirm that organization permissions are enforced by server procedures.
 
-Prepare signed Android and iOS builds, final store assets, privacy disclosures, age rating, support URL, review credentials, signing ownership, account-access instructions, native deep-link validation, physical-device QA, and Apple/Google submission materials. If launching web-only, explicitly defer store release and avoid claiming native availability.
+**Evidence:** staging authentication test record and callback configuration export.
 
-## Security and Privacy Principles
+### 4. Deploy media infrastructure
 
-Authentication tokens, AI credentials, database credentials, storage credentials, and worker credentials remain outside the client bundle. Authorization is enforced on the server using authenticated user ownership and organization membership. Media is delivered through server-authorized short-lived access rather than exposing storage credentials.
+Connect object storage, a real transcoding and transcription processor, and the authenticated persistent worker. Process a test video through upload, queue claim, transcode, captions, playback, retry, failure, and rights-revocation paths. Add malware scanning and content-rights review before accepting production uploads.
 
-Before launch, conduct a formal threat model, dependency and secret scan, authorization review, rate-limit review, abuse review, penetration test, privacy data map, retention review, deletion/export test, and child/education compliance review where the learner population requires it. Legal and privacy requirements vary by jurisdiction and learner age; consult qualified counsel rather than relying on this README as legal advice.
+Build and start the worker with:
 
-## Operations and Incident Response
+```bash
+pnpm build:worker
+pnpm start:worker
+```
 
-Production operations require centralized logs, error reporting, API latency and error metrics, database readiness checks, web uptime probes, media queue metrics, worker lease monitoring, AI usage and cost alerts, backup monitoring, and a named on-call owner.
+**Evidence:** processed test asset, worker claim/completion logs, retry/dead-letter result, caption result, and revoked-playback result.
 
-Backups must be restored into isolated staging before launch. Keep the migration journal, deployment version, asset inventory, incident timeline, and rollback build available. Define recovery-time and recovery-point objectives. Practice responses for authentication compromise, data exposure, database failure, media outage, unauthorized playback, harmful AI output, and large-scale learner access problems.
+### 5. Configure delivery and CDN
 
-## Education Deployment Model
+Start with signed server-authorized playback. Add a CDN when traffic, geography, latency, or cost justify it. Verify cache invalidation, signed URL expiry, origin protection, and rollback before enabling broad media delivery.
 
-Begin with a narrow learner segment and a measurable subject area. Define learning outcomes before selecting content. Have educators review the lesson content and assessment quality. Monitor activation, lesson completion, checkpoint performance, review participation, retained learning signals, support incidents, AI cost per active learner, and learner feedback.
+**Evidence:** playback security test, cache invalidation test, and rollback record.
 
-A starter course is a product demonstration, not an education catalog. Institutional adoption requires approved content, educator workflows, learner support, privacy agreements, accessibility conformance, reporting, and a clear process for handling inaccurate content or learner safety concerns.
+### 6. Configure operations
 
-## Recommended Launch Sequence
+Set centralized logs, error reporting, API latency and error metrics, database readiness checks, uptime probes, queue age and worker lease metrics, AI usage and cost alerts, backup monitoring, and incident routing. Assign an incident owner and backup owner.
 
-1. Choose web-only pilot or web-plus-native release scope.
-2. Assign product, infrastructure, security, privacy, QA, curriculum, and support owners.
-3. Create isolated staging and production environments.
-4. Configure the domain, HTTPS, OAuth, database, storage, and server secrets.
-5. Deploy and test the real media worker and processor.
-6. Configure monitoring, backups, restore drills, alerts, and rollback.
-7. Complete security, privacy, accessibility, and education-content review.
-8. Run the full web QA matrix and resolve critical/high defects.
-9. Run a controlled education pilot and inspect outcome evidence.
-10. Approve the final production checkpoint and publish the web release.
-11. If native is still in scope, generate signed builds and complete physical-device/store review.
+**Evidence:** alert delivery test, dashboard links, on-call schedule, and incident drill record.
 
-## Current Go/No-Go Assessment
+### 7. Complete security, privacy, and education review
 
-**Current status: controlled-staging ready.** The browser-first experience and code-level validation are complete. Public education or industry launch remains **no-go** until real production services, operational ownership, legal/compliance review, educator-approved content, and deployment-specific QA are evidenced.
+Review the threat model, authorization matrix, dependency and secret scans, rate limits, abuse controls, data map, retention rules, deletion/export workflow, accessibility, learner safety, AI grounding, and applicable education or child-privacy obligations. Publish approved privacy, terms, acceptable-use, support, and retention documents.
 
-## License and Ownership
+**Evidence:** signed review record, resolved critical/high findings, educator content approval, and published policy URLs.
 
-Add the organization’s approved license, copyright notice, third-party notices, content rights policy, and support contact before public distribution. The product owner is responsible for confirming ownership of source code, generated artwork, course content, video assets, captions, fonts, domains, store accounts, and operational credentials.
+### 8. Complete web and native QA
 
-## Related Documentation
+Run the manual web matrix in Chrome, Safari, Firefox, and Edge at desktop and narrow widths. Test keyboard access, focus visibility, lesson navigation, offline queueing, reconnect sync, OAuth callback, theme persistence, invalid routes, error states, video playback, and Learning Hub actions.
 
+If native release remains in scope, execute every case in `PHYSICAL_DEVICE_QA.md` on at least one current Android device and one current iPhone using fresh signed builds.
+
+**Evidence:** device/browser matrix with build identifier, OS version, result, screenshots or recordings, and issue disposition.
+
+### 9. Run a controlled education pilot
+
+Start with a narrow learner segment and one measurable subject area. Use educator-reviewed content. Define success metrics for activation, lesson completion, checkpoint performance, review participation, support incidents, AI cost per active learner, and learning evidence. Keep rollback and learner-support ownership visible.
+
+**Evidence:** pilot plan, outcome report, support log, and go/no-go decision.
+
+### 10. Approve the public release
+
+Release only when all blocking items are closed, the production checkpoint is tagged, rollback is tested, monitoring is active, and the accountable product, infrastructure, security, privacy, curriculum, QA, and support owners sign the release decision.
+
+## Rollback procedure
+
+1. Freeze new deployments and record the incident start time.
+2. Identify whether the failure is in the client, API, database migration, AI service, media worker, storage, CDN, or authentication provider.
+3. Disable the affected capability through configuration or access control when possible.
+4. Roll back the application to the last validated checkpoint.
+5. Do not reverse a database migration without a reviewed, tested rollback migration.
+6. Preserve logs, queue state, audit entries, and affected asset identifiers.
+7. Communicate learner impact and support instructions.
+8. Restore service gradually and complete a post-incident review.
+
+## Go/no-go decision
+
+### Go for controlled staging when
+
+- Automated validation passes.
+- The web export is generated successfully.
+- Staging authentication, database, API, and worker services are configured.
+- A real test media asset completes the processing path.
+- Monitoring and rollback are tested in staging.
+
+### No-go for public production when any of the following is missing
+
+- Production hosting, database, object storage, or media processing.
+- Backup restoration evidence or named operational ownership.
+- Security, privacy, accessibility, or educator content approval.
+- Physical Android/iOS QA when native release is advertised.
+- Store review and submission when native distribution is intended.
+- Support, incident response, or data deletion/export process.
+
+**Current decision: no-go for unrestricted public production; go for controlled staging and external infrastructure activation.**
+
+## Documentation map
+
+- [Production readiness](./PRODUCTION_READINESS.md)
 - [Industry readiness roadmap](./INDUSTRY_READINESS_ROADMAP.md)
 - [Industry release handoff](./INDUSTRY_RELEASE_HANDOFF.md)
-- [Production readiness](./PRODUCTION_READINESS.md)
 - [Architecture](./ARCHITECTURE.md)
 - [Database](./DATABASE.md)
 - [API](./API.md)
@@ -278,3 +279,14 @@ Add the organization’s approved license, copyright notice, third-party notices
 - [Physical-device QA](./PHYSICAL_DEVICE_QA.md)
 - [Store release checklist](./STORE_RELEASE_CHECKLIST.md)
 - [Privacy review draft](./PRIVACY_REVIEW_DRAFT.md)
+- [Additive requirements gap](./ADDITIVE_REQUIREMENTS_GAP.md)
+
+## License and ownership
+
+Before public distribution, add the approved license, copyright notice, third-party notices, content-rights policy, support contact, and privacy policy. The product owner must confirm ownership of source code, generated artwork, course content, video assets, captions, fonts, domains, store accounts, and operational credentials.
+
+## References
+
+[1]: ./PRODUCTION_READINESS.md "LearnVerse AI production readiness matrix"
+[2]: ./INDUSTRY_READINESS_ROADMAP.md "LearnVerse AI industry readiness roadmap"
+[3]: ./INDUSTRY_RELEASE_HANDOFF.md "LearnVerse AI industry release handoff"
