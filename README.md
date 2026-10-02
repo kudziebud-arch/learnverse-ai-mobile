@@ -14,7 +14,9 @@ The application code, server boundaries, worker package, automated tests, static
 
 ### Verification snapshot — 2026-10-02
 
-The latest repository validation completed successfully: **27 tests passed, 1 authentication test was intentionally skipped because it requires an external authentication environment, TypeScript passed, lint passed, server and worker production bundles built, Expo Doctor passed, and the static web export generated 20 routes**. The export was written to `dist/web-export` and contains a non-empty `index.html`.
+The latest repository validation completed successfully: **27 tests passed, 1 authentication test was intentionally skipped because it requires an external authentication environment, TypeScript passed, lint passed, server and worker production bundles built, Expo Doctor passed, and the static web export generated 20 routes**. The export was written to `dist/web-export` and contains a non-empty `index.html`. A bounded local smoke test also started the production API bundle and received `{"ok":true}` from `/api/health`; the temporary process was then stopped. The repository secret scan found no tracked secret-named files or matching private-key/API-key content.
+
+The production dependency audit is **not clear**: the current dependency graph reports **166 vulnerabilities, including 2 critical and 98 high-severity findings**. The report identifies transitive paths through the Expo CLI toolchain, including `node-forge`, `tar`, `undici`, and `minimatch`, as well as a high-severity `@trpc/server` finding. This is a release blocker. Run `pnpm audit --prod`, identify the affected transitive paths, upgrade or replace vulnerable packages, and repeat the audit until the production policy is satisfied. Do not approve public release while critical or high findings remain unexplained and accepted by the security owner.
 
 ## Product loop
 
@@ -214,7 +216,7 @@ Set centralized logs, error reporting, API latency and error metrics, database r
 
 ### 7. Complete security, privacy, and education review
 
-Review the threat model, authorization matrix, dependency and secret scans, rate limits, abuse controls, data map, retention rules, deletion/export workflow, accessibility, learner safety, AI grounding, and applicable education or child-privacy obligations. Publish approved privacy, terms, acceptable-use, support, and retention documents.
+Review the threat model, authorization matrix, dependency and secret scans, rate limits, abuse controls, data map, retention rules, deletion/export workflow, accessibility, learner safety, AI grounding, and applicable education or child-privacy obligations. Resolve the current dependency-audit blocker before approval. Publish approved privacy, terms, acceptable-use, support, and retention documents.
 
 **Evidence:** signed review record, resolved critical/high findings, educator content approval, and published policy URLs.
 
