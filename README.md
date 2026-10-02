@@ -12,6 +12,10 @@ This repository contains a **browser-first web application** with retained Expo 
 
 The application code, server boundaries, worker package, automated tests, static web export, and operational documentation are present. The release must not be called public-production-ready until the external gates in the [production activation checklist](#production-activation-checklist) have evidence attached to the release record.
 
+### Verification snapshot — 2026-10-02
+
+The latest repository validation completed successfully: **27 tests passed, 1 authentication test was intentionally skipped because it requires an external authentication environment, TypeScript passed, lint passed, server and worker production bundles built, Expo Doctor passed, and the static web export generated 20 routes**. The export was written to `dist/web-export` and contains a non-empty `index.html`.
+
 ## Product loop
 
 | Stage | Learner experience | Evidence created |
@@ -155,7 +159,7 @@ rm -rf dist/web-export
 npx expo export --platform web --output-dir dist/web-export
 ```
 
-The web export must contain `dist/web-export/index.html`, JavaScript and CSS bundles, and the static routes listed above. The current validated release has passed TypeScript, automated tests, lint, Expo Doctor, server build, worker build, and static web export. The intentionally skipped authentication test remains dependent on an external authentication environment and must be covered by staging smoke tests.
+The web export must contain `dist/web-export/index.html`, JavaScript and CSS bundles, and the static routes listed above. The **2026-10-02 validation snapshot** passed TypeScript, automated tests, lint, Expo Doctor, server build, worker build, and static web export. The intentionally skipped authentication test remains dependent on an external authentication environment and must be covered by staging smoke tests.
 
 ## Production activation checklist
 
