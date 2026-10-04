@@ -12,11 +12,11 @@ This repository contains a **browser-first web application** with retained Expo 
 
 The application code, server boundaries, worker package, automated tests, static web export, and operational documentation are present. The release must not be called public-production-ready until the external gates in the [production activation checklist](#production-activation-checklist) have evidence attached to the release record.
 
-### Verification snapshot — 2026-10-02
+### Verification snapshot — 2026-10-04
 
-The latest repository validation completed successfully: **27 tests passed, 1 authentication test was intentionally skipped because it requires an external authentication environment, TypeScript passed, lint passed, server and worker production bundles built, Expo Doctor passed, and the static web export generated 20 routes**. The export was written to `dist/web-export` and contains a non-empty `index.html`. A bounded local smoke test also started the production API bundle and received `{"ok":true}` from `/api/health`; the temporary process was then stopped. The repository secret scan found no tracked secret-named files or matching private-key/API-key content.
+The latest repository validation completed successfully: **27 tests passed, 1 authentication test was intentionally skipped because it requires an external authentication environment, TypeScript passed, lint passed, server and worker production bundles built, Expo Doctor passed 18/18 checks, and the static web export generated 20 routes**. The export was written to `dist/web-export` and contains a non-empty `index.html`. A bounded local smoke test also started the production API bundle and received `{"ok":true}` from `/api/health`; the temporary process was then stopped. The repository secret scan found no tracked secret-named files or matching private-key/API-key content.
 
-The production dependency audit is **not clear**: the current dependency graph reports **166 vulnerabilities, including 2 critical and 98 high-severity findings**. The report identifies transitive paths through the Expo CLI toolchain, including `node-forge`, `tar`, `undici`, and `minimatch`, as well as a high-severity `@trpc/server` finding. This is a release blocker. Run `pnpm audit --prod`, identify the affected transitive paths, upgrade or replace vulnerable packages, and repeat the audit until the production policy is satisfied. Do not approve public release while critical or high findings remain unexplained and accepted by the security owner.
+The production runtime dependency audit is now **clean: 0 critical, 0 high, 0 moderate, and 0 low findings**. Direct tRPC, Axios, Drizzle, MySQL, and Express dependencies were upgraded; browser/native build dependencies were classified as development-only; and the Express 5 wildcard storage route was made type-safe. The full frozen-lockfile validation passed after these changes. Continue to run `pnpm audit --prod` in CI before every release.
 
 ## Product loop
 
@@ -161,7 +161,7 @@ rm -rf dist/web-export
 npx expo export --platform web --output-dir dist/web-export
 ```
 
-The web export must contain `dist/web-export/index.html`, JavaScript and CSS bundles, and the static routes listed above. The **2026-10-02 validation snapshot** passed TypeScript, automated tests, lint, Expo Doctor, server build, worker build, and static web export. The intentionally skipped authentication test remains dependent on an external authentication environment and must be covered by staging smoke tests.
+The web export must contain `dist/web-export/index.html`, JavaScript and CSS bundles, and the static routes listed above. The **2026-10-04 validation snapshot** passed TypeScript, automated tests, lint, Expo Doctor 18/18, server build, worker build, and static web export. The intentionally skipped authentication test remains dependent on an external authentication environment and must be covered by staging smoke tests.
 
 ## Production activation checklist
 
