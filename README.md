@@ -12,6 +12,8 @@ This repository contains a **browser-first web application** with retained Expo 
 
 The application code, server boundaries, worker package, automated tests, static web export, and operational documentation are present. The release must not be called public-production-ready until the external gates in the [production activation checklist](#production-activation-checklist) have evidence attached to the release record.
 
+Use [`PRODUCTION_ACTIVATION_GUIDE.md`](./PRODUCTION_ACTIVATION_GUIDE.md) for the complete external setup procedure, secret inventory, worker/media contract, monitoring and backup drills, legal/privacy review, physical-device QA, store release steps, evidence requirements, and troubleshooting.
+
 ### Verification snapshot — 2026-10-04
 
 The latest repository validation completed successfully: **27 tests passed, 1 authentication test was intentionally skipped because it requires an external authentication environment, TypeScript passed, lint passed, server and worker production bundles built, Expo Doctor passed 18/18 checks, and the static web export generated 20 routes**. The export was written to `dist/web-export` and contains a non-empty `index.html`. A bounded local smoke test also started the production API bundle and received `{"ok":true}` from `/api/health`; the temporary process was then stopped. The repository secret scan found no tracked secret-named files or matching private-key/API-key content.
@@ -166,6 +168,8 @@ The web export must contain `dist/web-export/index.html`, JavaScript and CSS bun
 ## Production activation checklist
 
 The following sequence turns the validated repository into an operated release. Each item requires a named owner, a completion date, and evidence attached to the release record.
+
+For the detailed command-by-command procedure and troubleshooting, follow [`PRODUCTION_ACTIVATION_GUIDE.md`](./PRODUCTION_ACTIVATION_GUIDE.md).
 
 ### 1. Create isolated environments
 
